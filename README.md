@@ -1,0 +1,2 @@
+# hask
+Haskell learning playground
