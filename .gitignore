@@ -21,3 +21,8 @@ cabal.project.local
 cabal.project.local~
 .HTF/
 .ghc.environment.*
+# Stack uses this directory as scratch space.
+/.stack-work/
+# Stack generates the Cabal file from `package.yaml` through hpack.
+/*.cabal
+/*.code-workspace
