@@ -30,6 +30,7 @@ dependencies:
 - aeson
 - aeson-qq
 - unordered-containers
+- bytestring
 
 
 library:
