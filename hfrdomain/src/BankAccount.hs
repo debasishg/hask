@@ -5,12 +5,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
 
-module RefValidate where
+module BankAccount where
 
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isNothing)
 import Data.Time
 import Data.Functor
 import Data.Text (Text, pack)
@@ -24,12 +22,6 @@ import Control.Monad.Reader
 import Data.Aeson (Object, Value(..), decode)
 import Data.Aeson.QQ (aesonQQ)
 
-data CCY = USD
-         | AUD
-         | SGD
-         | JPY
-         | INR
-
 data BankAccount = BankAccount {
     accountNo          :: Text
   , accountHolderName  :: Text  
@@ -37,8 +29,8 @@ data BankAccount = BankAccount {
   , accountCloseDate   :: Maybe UTCTime 
 } deriving (Show)
 
-data Env = Env 
-  { envPath :: [Text] }
+newtype Env
+  = Env {envPath :: [Text]}
   deriving (Show, Eq)
 
 data Error = Error { errPath :: [Text], errInfo :: ErrorInfo }
@@ -61,11 +53,12 @@ makeBankAccount req = do
     accNo           <- withKey o "account_no" parseAccountNo
     accName         <- withKey o "account_name" parseAccountName
     accOpenDate     <- withKey o "account_open_date" (parseAccountOpenDate utcCurrent)
+    accCloseDate    <- withKey o "account_close_date" (parseAccountCloseDate accOpenDate)
 
-    pure BankAccount { accountNo = accNo, 
-                       accountHolderName = accName, 
-                       accountOpenDate = accOpenDate,
-                       accountCloseDate = Nothing } where
+    pure BankAccount { accountNo           = accNo, 
+                       accountHolderName   = accName, 
+                       accountOpenDate     = accOpenDate,
+                       accountCloseDate    = accCloseDate } where
 
       parseAccountNo v = do
         str <- asString v
@@ -90,21 +83,19 @@ makeBankAccount req = do
           then pure d
           else refuteErr $ InvalidAccountOpenDate (T.pack $ "Account open date " ++ show d ++ " " ++ show current ++ " cannot be in future")
 
+      parseAccountCloseDate :: UTCTime -> Value -> m (Maybe UTCTime)
       parseAccountCloseDate od v = do
         str <- asString v
-        tolerate $ validateAccountCloseDate v str od
-
-      validateAccountCloseDate :: Value -> Text -> UTCTime -> m (Maybe UTCTime)
-      validateAccountCloseDate v str openDate = 
         if T.null str
-          then pure Nothing 
-          else (do
-                  dt <- asDate v 
-                  if dt < openDate
-                    then refuteErr $ InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show openDate)
-                    else pure $ Just dt)
+          then pure Nothing
+          else Just <$> validateAccountCloseDate v od
 
-
+      validateAccountCloseDate :: Value -> UTCTime -> m UTCTime
+      validateAccountCloseDate v openDate = do
+        dt <- asDate v 
+        if dt < openDate
+          then refuteErr $ InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show openDate)
+          else pure dt
 
       pushPath :: Text -> m a -> m a
       pushPath path = local (\env -> env { envPath = path : envPath env })
@@ -128,13 +119,11 @@ makeBankAccount req = do
       withKey :: Object -> Text -> (Value -> m a) -> m a
       withKey o k f = maybe (refuteErr $ JSONMissingKey k) (pushPath k . f) $ M.lookup k o
 
-bankAccount = do
-  let env = Env []
-      testcase input = do
-        accRdr <- runValidateT <$> makeBankAccount input
-        return $ runReader accRdr env
+isAccountActive :: BankAccount -> Bool 
+isAccountActive account = isNothing $ accountCloseDate account 
 
-  -- testcase [aesonQQ| { "account_no": "1234567890", "account_name": "debasish", "account_open_date": "\"1984-10-15T00:00:00Z\"" } |]
-  testcase [aesonQQ| { "account_no": "1234567890", "account_name": "debasish", "account_open_date": "" } |]
-  -- testcase [aesonQQ| { "account_no": "12567890", "account_name": "debasish" } |]
-  -- testcase [aesonQQ| { "account_no": "125678", "account_name": "" } |]
+openDaysSince :: BankAccount -> UTCTime -> Maybe NominalDiffTime
+openDaysSince account sinceUTC =
+  if not (isAccountActive account)
+    then Nothing 
+    else Just $ diffUTCTime (accountOpenDate account) sinceUTC
