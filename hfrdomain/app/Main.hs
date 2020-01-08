@@ -5,7 +5,7 @@
 module Main where
 
 import Data.Aeson.QQ (aesonQQ)
-import Control.Monad.Validate (runValidateT)
+import Control.Monad.Validate (runValidateT, runValidate, refute)
 import Control.Monad.Reader
 import Data.Foldable (for_)
 import BankAccount
