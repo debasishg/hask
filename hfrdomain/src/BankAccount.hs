@@ -5,12 +5,14 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 
 module BankAccount where
 
 import Data.Maybe (fromJust, isNothing)
 import Data.Time
 import Data.Functor
+import Data.Ratio
 import Data.Text (Text, pack)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Data.ByteString.Lazy.Char8 as L
@@ -21,12 +23,15 @@ import Control.Monad.Validate
 import Control.Monad.Reader
 import Data.Aeson (Object, Value(..), decode)
 import Data.Aeson.QQ (aesonQQ)
+import qualified Money as Y
+import Money.Aeson
 
 data BankAccount = BankAccount {
     accountNo          :: Text
   , accountHolderName  :: Text  
   , accountOpenDate    :: UTCTime 
   , accountCloseDate   :: Maybe UTCTime 
+  , currentBalance     :: Y.Dense "USD"
 } deriving (Show)
 
 newtype Env
@@ -39,10 +44,12 @@ data ErrorInfo
   = JSONBadValue Text Value
   | JSONMissingKey Text
   | InvalidDateValueInJSON Text
+  | InvalidMoneyValueInJSON Text
   | InvalidAccountNumber Text 
   | InvalidAccountName Text
   | InvalidAccountOpenDate Text
   | InvalidAccountOpenCloseDateCombination Text
+  | AccountBalanceLessThanMinimumBalance Text
   deriving (Show, Eq)
 
 makeBankAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m BankAccount)
@@ -54,11 +61,13 @@ makeBankAccount req = do
     accName         <- withKey o "account_name" parseAccountName
     accOpenDate     <- withKey o "account_open_date" (parseAccountOpenDate utcCurrent)
     accCloseDate    <- withKey o "account_close_date" (parseAccountCloseDate accOpenDate)
+    currBalance     <- withKey o "account_current_balance" parseCurrentBalance
 
     pure BankAccount { accountNo           = accNo, 
                        accountHolderName   = accName, 
                        accountOpenDate     = accOpenDate,
-                       accountCloseDate    = accCloseDate } where
+                       accountCloseDate    = accCloseDate,
+                       currentBalance      = currBalance } where
 
       parseAccountNo v = do
         str <- asString v
@@ -97,6 +106,18 @@ makeBankAccount req = do
           then refuteErr $ InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show openDate)
           else pure dt
 
+      parseCurrentBalance :: Value -> m (Y.Dense "USD")
+      parseCurrentBalance v = do
+        n <- asMoney v
+        b <- tolerate $ validateCurrentBalance n
+        pure $ fromJust b
+
+      validateCurrentBalance :: Y.Dense "USD" -> m (Y.Dense "USD")
+      validateCurrentBalance balance = 
+        if balance >= (100 :: Y.Dense "USD")
+          then pure balance
+          else refuteErr $ AccountBalanceLessThanMinimumBalance (T.pack $ (show balance))
+
       pushPath :: Text -> m a -> m a
       pushPath path = local (\env -> env { envPath = path : envPath env })
       mkErr info = asks envPath <&> \path -> Error (Prelude.reverse path) info
@@ -109,6 +130,11 @@ makeBankAccount req = do
                                       Nothing -> refuteErr $ InvalidDateValueInJSON s
                                       Just d -> pure d);
                        v        -> refuteErr $ JSONBadValue "date" v }
+
+      asMoney = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe (Y.Dense "USD") of
+                                       Nothing -> refuteErr $ InvalidMoneyValueInJSON s
+                                       Just x  -> pure x);
+                        v        -> refuteErr $ JSONBadValue "money" v }
 
       disputeErr :: ErrorInfo -> m ()
       disputeErr = mkErr >=> \err -> dispute [err]

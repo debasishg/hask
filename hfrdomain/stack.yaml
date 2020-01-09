@@ -41,6 +41,7 @@ packages:
 #
 extra-deps: 
 - monad-validate-1.2.0.0@sha256:9850f408431098b28806dd464b6825a88a0b56c84f380d7fe0454c1df9d6f881,3505
+- safe-money-aeson-0.1.1@sha256:d7383134649d5e63177731f3b5a0ff1992a1d4edf9d224178b264eb4fcdd6c14,1405
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

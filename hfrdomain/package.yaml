@@ -31,6 +31,8 @@ dependencies:
 - aeson-qq
 - unordered-containers
 - bytestring
+- safe-money
+- safe-money-aeson
 
 
 library:
