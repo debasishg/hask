@@ -33,6 +33,7 @@ dependencies:
 - bytestring
 - safe-money
 - safe-money-aeson
+- lens
 
 
 library:

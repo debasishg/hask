@@ -17,6 +17,7 @@ main = do
       testcase input = do
         accRdr <- runValidateT <$> makeBankAccount input
         return $ runReader accRdr env
+        -- return $ flip runReader env . runValidateT <$> (makeBankAccount input)
 
   a <- testcase [aesonQQ| { "account_no": "1234567890", "account_name": "debasish", "account_open_date": "\"1984-10-15T00:00:00Z\"", "account_close_date": "\"1994-01-15T00:00:00Z\"", "account_current_balance": "[\"USD\",3200,1]" } |]
   b <- testcase [aesonQQ| { "account_no": "1234567890", "account_name": "debasish", "account_open_date": "\"1984-10-15T00:00:00Z\"", "account_close_date": "\"1994-01-15T00:00:00Z\"", "account_current_balance": "[\"USD\",32,1]" } |]
