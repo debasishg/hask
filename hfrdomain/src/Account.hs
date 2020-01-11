@@ -10,7 +10,18 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Account where
+module Account(
+  makeAccount, 
+  isAccountActive, 
+  isAccountClosed, 
+  updateBalance, 
+  close, 
+  Env(..)) where
+
+import qualified Data.ByteString.Lazy.Char8 as L
+import qualified Data.HashMap.Strict as M
+import qualified Data.Text as T
+import qualified Money as Y
 
 import Data.Maybe (fromJust, isNothing)
 import Data.Time
@@ -18,18 +29,15 @@ import Data.Functor
 import Data.Ratio
 import Data.Text (Text, pack)
 import Data.Text.Encoding (encodeUtf8)
-import Data.Scientific (toBoundedInteger)
-import qualified Data.ByteString.Lazy.Char8 as L
-import qualified Data.HashMap.Strict as M
-import qualified Data.Text as T
+import Data.Scientific (toBoundedInteger, toBoundedRealFloat)
+import Data.Aeson (Object, Value(..), decode, FromJSON, ToJSON)
+import Data.Aeson.QQ (aesonQQ)
+import Data.Aeson.Utils (parseNumber)
 import Control.Monad
 import Control.Monad.Validate
 import Control.Monad.Reader
 import Control.Lens hiding (element)
 import Control.Lens.TH
-import Data.Aeson (Object, Value(..), decode, FromJSON, ToJSON)
-import Data.Aeson.QQ (aesonQQ)
-import qualified Money as Y
 import Money.Aeson
 import GHC.Generics
 
@@ -40,7 +48,7 @@ data Account = Account {
   , _accountOpenDate    :: UTCTime 
   , _accountCloseDate   :: Maybe UTCTime 
   , _currentBalance     :: Y.Dense "USD"
-  , _rateOfInterest     :: Integer  -- 0 for checking account : validate
+  , _rateOfInterest     :: Double  -- 0 for checking account : validate
 } deriving (Show)
 
 data AccountType = Ch | Sv deriving (Show, Generic)
@@ -145,9 +153,9 @@ makeAccount req = do
           then pure balance
           else refuteErr $ AccountBalanceLessThanMinimumBalance (T.pack $ (show balance))
 
-      parseRateOfInterest :: AccountType -> Value -> m Integer
-      parseRateOfInterest Ch rate = asInteger rate >>= \i -> if i == 0 then pure i else refuteErr RateNotApplicableForCheckingAccount
-      parseRateOfInterest Sv rate = asInteger rate
+      parseRateOfInterest :: AccountType -> Value -> m Double
+      parseRateOfInterest Ch v = asDouble v >>= \i -> if i == 0.0 then pure i else refuteErr RateNotApplicableForCheckingAccount
+      parseRateOfInterest Sv v = asDouble v
 
       pushPath :: Text -> m a -> m a
       pushPath path = local (\env -> env { envPath = path : envPath env })
@@ -176,6 +184,11 @@ makeAccount req = do
       asInteger v = asNumber v >>=
         maybe (refuteErr $ JSONBadValue "integer" v) (pure . toInteger) . toBoundedInteger @Int
 
+      asDouble v = asNumber v >>= \s ->
+        case toBoundedRealFloat s of 
+          Left  i -> refuteErr $ JSONBadValue "double" v
+          Right d -> pure d
+
       disputeErr :: ErrorInfo -> m ()
       disputeErr = mkErr >=> \err -> dispute [err]
 
@@ -192,10 +205,7 @@ isAccountActive account = isNothing $ account ^. accountCloseDate
 -- | Check if the account is closed. If closed, return Maybe closeDate
 -- else return Nothing
 isAccountClosed :: Account -> Maybe UTCTime 
-isAccountClosed account = 
-  if isNothing $ account ^. accountCloseDate 
-    then Nothing 
-    else account ^. accountCloseDate
+isAccountClosed account = account ^. accountCloseDate 
 
 -- | Returns the number of days the account is open since the date passed
 openDaysSince :: Account -> UTCTime -> Maybe NominalDiffTime
@@ -204,23 +214,18 @@ openDaysSince account sinceUTC =
     then Nothing 
     else Just $ diffUTCTime (account ^. accountOpenDate) sinceUTC
 
--- | Close the bank account
--- Two checks to do:
--- a. if already closed, return error
--- b. if the passed in close date is Nothing, default to current date
-close :: forall m. (MonadReader Env m, MonadValidate [ErrorInfo] m) => Account -> Maybe UTCTime -> IO (m Account)
-close account maybeCloseDate = do
-  utcCurrent <- getCurrentTime  
-  pure (case isAccountClosed account of
+-- | Close the bank account with the closeDate passed in. Checks if the account
+-- is already closed, in which case it errors out
+close :: forall m. (MonadValidate [ErrorInfo] m) => Account -> UTCTime -> m Account
+close account closeDate = 
+  case isAccountClosed account of
     Just closedOn -> refute [AccountAlreadyClosed (account ^. accountNo) closedOn]
-    Nothing       -> case maybeCloseDate of 
-                        Just cd -> pure $ account & accountCloseDate .~ maybeCloseDate
-                        Nothing -> pure $ account & accountCloseDate ?~ utcCurrent)
+    Nothing       -> pure $ account & accountCloseDate ?~ closeDate
 
 -- | Update the balance of an account after doing the following checks:
 -- a. the account is active
 -- b. if the amount passed is < 0 then ensure the debit does not violate min balance check
-updateBalance :: forall m. (MonadReader Env m, MonadValidate [ErrorInfo] m) => Account -> Y.Dense "USD" -> m Account
+updateBalance :: forall m. (MonadValidate [ErrorInfo] m) => Account -> Y.Dense "USD" -> m Account
 updateBalance account amount = 
   checkBalance >>= \acc -> pure $ acc & currentBalance %~ (+ amount)
   where
