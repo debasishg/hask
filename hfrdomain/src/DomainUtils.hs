@@ -4,6 +4,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 module DomainUtils where
 
@@ -20,6 +22,7 @@ import Data.Time
 import Data.Text.Encoding (encodeUtf8)
 import Data.Scientific (Scientific, toBoundedInteger, toBoundedRealFloat)
 import Money.Aeson
+import GHC.TypeLits (KnownSymbol)
 
 newtype Env
   = Env {envPath :: [Text]}
@@ -71,8 +74,8 @@ asDate = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: May
                                 Just d -> pure d);
                  v        -> refuteErr $ JSONBadValue "date" v }
 
-asMoney :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> m (Y.Dense "USD")
-asMoney = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe (Y.Dense "USD") of
+asMoney :: forall m c. (MonadReader Env m, MonadValidate [Error] m, KnownSymbol c, FromJSON (Y.Dense c)) => Value -> m (Y.Dense c)
+asMoney = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: forall c1. (KnownSymbol c1) => Maybe (Y.Dense c1) of
                                  Nothing -> refuteErr $ InvalidMoneyValueInJSON s
                                  Just x  -> pure x);
                   v        -> refuteErr $ JSONBadValue "money" v }
