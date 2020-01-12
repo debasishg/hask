@@ -8,7 +8,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Account(
   makeAccount, 
@@ -32,7 +31,6 @@ import Data.Text.Encoding (encodeUtf8)
 import Data.Scientific (toBoundedInteger, toBoundedRealFloat)
 import Data.Aeson (Object, Value(..), decode, FromJSON, ToJSON)
 import Data.Aeson.QQ (aesonQQ)
-import Data.Aeson.Utils (parseNumber)
 import Control.Monad
 import Control.Monad.Validate
 import Control.Monad.Reader
@@ -40,6 +38,8 @@ import Control.Lens hiding (element)
 import Control.Lens.TH
 import Money.Aeson
 import GHC.Generics
+
+import DomainUtils
 
 data Account = Account {
     _accountNo          :: Text
@@ -56,28 +56,6 @@ instance FromJSON AccountType
 instance ToJSON AccountType
 
 $(makeLenses ''Account)
-
-newtype Env
-  = Env {envPath :: [Text]}
-  deriving (Show, Eq)
-
-data Error = Error { errPath :: [Text], errInfo :: ErrorInfo }
-  deriving (Show, Eq)
-data ErrorInfo
-  = JSONBadValue Text Value
-  | JSONMissingKey Text
-  | InvalidDateValueInJSON Text
-  | InvalidMoneyValueInJSON Text
-  | InvalidAccountNumber Text 
-  | InvalidAccountName Text
-  | InvalidAccountOpenDate Text
-  | InvalidAccountOpenCloseDateCombination Text
-  | AccountBalanceLessThanMinimumBalance Text
-  | AccountAlreadyClosed Text UTCTime
-  | InsufficientFundsInAccount Text
-  | InvalidAccountType Text
-  | RateNotApplicableForCheckingAccount
-  deriving (Show, Eq)
 
 -- | Smart constructor for making a Account from JSON data
 makeAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Account)
@@ -157,46 +135,10 @@ makeAccount req = do
       parseRateOfInterest Ch v = asDouble v >>= \i -> if i == 0.0 then pure i else refuteErr RateNotApplicableForCheckingAccount
       parseRateOfInterest Sv v = asDouble v
 
-      pushPath :: Text -> m a -> m a
-      pushPath path = local (\env -> env { envPath = path : envPath env })
-      mkErr info = asks envPath <&> \path -> Error (Prelude.reverse path) info
-      refuteErr = mkErr >=> \err -> refute [err]
-
-      asString = \case { String s -> pure s;
-                         v        -> refuteErr $ JSONBadValue "string" v }
-
-      asDate = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe UTCTime of
-                                      Nothing -> refuteErr $ InvalidDateValueInJSON s
-                                      Just d -> pure d);
-                       v        -> refuteErr $ JSONBadValue "date" v }
-
-      asMoney = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe (Y.Dense "USD") of
-                                       Nothing -> refuteErr $ InvalidMoneyValueInJSON s
-                                       Just x  -> pure x);
-                        v        -> refuteErr $ JSONBadValue "money" v }
-
       asAccountType = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s of 
                                              Nothing -> refuteErr $ InvalidAccountType s
                                              Just t  -> pure t);
                               v        -> refuteErr $ JSONBadValue "account-type" v }
-
-      asNumber = \case { Number n -> pure n; v -> refuteErr $ JSONBadValue "number" v }
-      asInteger v = asNumber v >>=
-        maybe (refuteErr $ JSONBadValue "integer" v) (pure . toInteger) . toBoundedInteger @Int
-
-      asDouble v = asNumber v >>= \s ->
-        case toBoundedRealFloat s of 
-          Left  i -> refuteErr $ JSONBadValue "double" v
-          Right d -> pure d
-
-      disputeErr :: ErrorInfo -> m ()
-      disputeErr = mkErr >=> \err -> dispute [err]
-
-      withObject :: Text -> Value -> (Object -> m a) -> m a
-      withObject name v f = case v of { Object o -> f o; _ -> refuteErr $ JSONBadValue name v }
-
-      withKey :: Object -> Text -> (Value -> m a) -> m a
-      withKey o k f = maybe (refuteErr $ JSONMissingKey k) (pushPath k . f) $ M.lookup k o
 
 -- | Check if an account is not closed
 isAccountActive :: Account -> Bool 
