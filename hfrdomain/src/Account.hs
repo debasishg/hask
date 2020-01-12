@@ -43,6 +43,10 @@ import GHC.TypeLits (Symbol, KnownSymbol)
 
 import DomainUtils
 
+-- | The Account algebraic data type. The type parameter ccy indicates the base currency
+-- for the account. And the current balance is maintained in this currency only.
+--
+-- The rate of interest has to be 0.0 for checking accounts and anything for savings accounts
 data Account ccy = Account {
     _accountNo          :: Text
   , _accountType        :: AccountType  
@@ -50,7 +54,7 @@ data Account ccy = Account {
   , _accountOpenDate    :: UTCTime 
   , _accountCloseDate   :: Maybe UTCTime 
   , _currentBalance     :: Y.Dense ccy
-  , _rateOfInterest     :: Double  -- 0 for checking account : validate
+  , _rateOfInterest     :: Double  
 } deriving (Show)
 
 data AccountType = Ch | Sv deriving (Show, Generic)
