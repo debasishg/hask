@@ -17,34 +17,34 @@ import Data.Text
 import Data.Functor
 import Control.Monad.Reader
 import Control.Monad.Validate
-import Data.Aeson (Object, Value(..), decode, FromJSON, ToJSON)
+import Data.Aeson (Object, Value(..), decode)
 import Data.Time
 import Data.Text.Encoding (encodeUtf8)
 import Data.Scientific (Scientific, toBoundedInteger, toBoundedRealFloat)
-import Money.Aeson
+import Money.Aeson()
 import GHC.TypeLits (KnownSymbol)
 
 newtype Env
-  = Env {envPath :: [Text]}
-  deriving (Show, Eq)
+    = Env {envPath :: [Text]}
+    deriving (Show, Eq)
 
 data Error = Error { errPath :: [Text], errInfo :: ErrorInfo }
-  deriving (Show, Eq)
+    deriving (Show, Eq)
 data ErrorInfo
-  = JSONBadValue Text Value
-  | JSONMissingKey Text
-  | InvalidDateValueInJSON Text
-  | InvalidMoneyValueInJSON Text
-  | InvalidAccountNumber Text 
-  | InvalidAccountName Text
-  | InvalidAccountOpenDate Text
-  | InvalidAccountOpenCloseDateCombination Text
-  | AccountBalanceLessThanMinimumBalance Text
-  | AccountAlreadyClosed Text UTCTime
-  | InsufficientFundsInAccount Text
-  | InvalidAccountType Text
-  | RateNotApplicableForCheckingAccount
-  deriving (Show, Eq)
+    = JSONBadValue Text Value
+    | JSONMissingKey Text
+    | InvalidDateValueInJSON Text
+    | InvalidMoneyValueInJSON Text
+    | InvalidAccountNumber Text 
+    | InvalidAccountName Text
+    | InvalidAccountOpenDate Text
+    | InvalidAccountOpenCloseDateCombination Text
+    | AccountBalanceLessThanMinimumBalance Text
+    | AccountAlreadyClosed Text UTCTime
+    | InsufficientFundsInAccount Text
+    | InvalidAccountType Text
+    | RateNotApplicableForCheckingAccount
+    deriving (Show, Eq)
 
 pushPath :: forall m a. (MonadReader Env m) => Text -> m a -> m a
 pushPath path = local (\env -> env { envPath = path : envPath env })
@@ -69,26 +69,28 @@ asString = \case { String s -> pure s;
                    v        -> refuteErr $ JSONBadValue "string" v }
 
 asDate :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> m UTCTime
-asDate = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe UTCTime of
-                                Nothing -> refuteErr $ InvalidDateValueInJSON s
-                                Just d -> pure d);
-                 v        -> refuteErr $ JSONBadValue "date" v }
+asDate = \case { 
+    String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe UTCTime of
+                    Nothing -> refuteErr $ InvalidDateValueInJSON s
+                    Just d -> pure d);
+    v        -> refuteErr $ JSONBadValue "date" v }
 
-asMoney :: forall m c. (MonadReader Env m, MonadValidate [Error] m, KnownSymbol c, FromJSON (Y.Dense c)) => Value -> m (Y.Dense c)
-asMoney = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s :: forall c1. (KnownSymbol c1) => Maybe (Y.Dense c1) of
-                                 Nothing -> refuteErr $ InvalidMoneyValueInJSON s
-                                 Just x  -> pure x);
-                  v        -> refuteErr $ JSONBadValue "money" v }
+asMoney :: forall m c. (MonadReader Env m, MonadValidate [Error] m, KnownSymbol c) => Value -> m (Y.Dense c)
+asMoney = \case { 
+    String s -> (case (decode . L.fromStrict . encodeUtf8) s :: forall c1. (KnownSymbol c1) => Maybe (Y.Dense c1) of
+                    Nothing -> refuteErr $ InvalidMoneyValueInJSON s
+                    Just x  -> pure x);
+    v        -> refuteErr $ JSONBadValue "money" v }
 
 asNumber :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> m Scientific
 asNumber = \case { Number n -> pure n; v -> refuteErr $ JSONBadValue "number" v }
 
 asInteger :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> m Integer
 asInteger v = asNumber v >>=
-  maybe (refuteErr $ JSONBadValue "integer" v) (pure . toInteger) . toBoundedInteger @Int
+    maybe (refuteErr $ JSONBadValue "integer" v) (pure . toInteger) . toBoundedInteger @Int
 
 asDouble :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> m Double
 asDouble v = asNumber v >>= \s ->
-  case toBoundedRealFloat s of 
-    Left  i -> refuteErr $ JSONBadValue "double" v
-    Right d -> pure d
+    case toBoundedRealFloat s of 
+        Left  _i -> refuteErr $ JSONBadValue "double" v
+        Right  d -> pure d
