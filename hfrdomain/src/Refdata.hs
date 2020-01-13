@@ -4,7 +4,6 @@ module Refdata where
 
 import Data.Time
 import Data.Validation
-import Control.Monad.IO.Class
 import Control.Monad.Reader
 
 newtype Money = Money
@@ -43,10 +42,10 @@ data Account = Account {
 data Env = Env { curTime :: !ZonedTime }
 
 validateAccountNo :: String -> Reader Env (Validation [String] String)
-validateAccountNo accountNo = 
-  if length accountNo /= 10
+validateAccountNo accNo = 
+  if length accNo /= 10
     then return $ Failure ["Account Number has to be of 10 characters"]
-    else return $ Success accountNo
+    else return $ Success accNo
 
 validateAccountName :: String -> Reader Env (Validation [String] String)
 validateAccountName name =
@@ -62,7 +61,7 @@ validateOpenDate openDate = do
   else return $ Success openDate
 
 validateOpenCloseDate :: ZonedTime -> Maybe ZonedTime -> Reader Env (Validation [String] (Maybe ZonedTime))
-validateOpenCloseDate openDate Nothing = return $ Success Nothing
+validateOpenCloseDate _openDate Nothing = return $ Success Nothing
 validateOpenCloseDate openDate (Just closeDate) = 
   if zonedTimeToUTC openDate <= zonedTimeToUTC closeDate
     then return $ Success (Just closeDate)
@@ -84,6 +83,7 @@ makeAccount no name openDate maybeCloseDate = do
           <*> validOpeningDate 
           <*> validCloseDate 
 
+account :: IO (Validation [String] Account, Validation [String] Account) 
 account = do
   od <- getZonedTime 
   invalid <- makeAccount "123" "" od (Just od)

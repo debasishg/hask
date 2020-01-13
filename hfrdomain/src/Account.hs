@@ -36,7 +36,7 @@ import Control.Lens hiding (element)
 import GHC.Generics
 import GHC.TypeLits (KnownSymbol)
 
-import DomainUtils
+import ValidateAeson
 
 -- | The Account algebraic data type. The type parameter ccy indicates the base currency
 -- for the account. And the current balance is maintained in this currency only.
@@ -132,7 +132,7 @@ makeAccount req = do
             validateCurrentBalance balance = 
               if balance >= (100 :: Y.Dense c)
               then pure balance
-              else refuteErr $ AccountBalanceLessThanMinimumBalance (T.pack $ (show balance))
+              else refuteErr $ AccountBalanceLessThanMinimumBalance (T.pack (show balance))
       
             parseRateOfInterest :: AccountType -> Value -> m Double
             parseRateOfInterest Ch v = asDouble v >>= \i -> if i == 0.0 then pure i else refuteErr RateNotApplicableForCheckingAccount

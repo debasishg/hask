@@ -7,7 +7,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
-module DomainUtils where
+module ValidateAeson where
 
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.HashMap.Strict as M

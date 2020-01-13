@@ -11,7 +11,6 @@ import Data.Time
 import Data.Aeson.QQ (aesonQQ)
 import Control.Monad.Validate (runValidateT, runValidate)
 import Control.Monad.Reader
-import Data.Foldable (for_)
 import qualified Money as Y
 import Account
 

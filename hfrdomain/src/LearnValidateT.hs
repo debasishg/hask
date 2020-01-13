@@ -4,20 +4,20 @@
 
 module LearnValidateT where
 
-import Control.Monad.Validate (runValidateT, runValidate, refute)
+import Control.Monad.Validate (runValidate, refute)
 
 main :: IO ()
 main = do 
-  let foo = runValidate (refute ["bang"] *> refute ["boom"])
+  let _foo = runValidate (refute ["bang"] *> refute ["boom"])
   -- Left ["bang", "boom"]
 
-  let bar = 
+  let _bar = 
         let getString = refute ["bang"] *> pure "boom"
             useString a = refute [a]
         in runValidate (getString >>= useString)
   -- Left ["bang"]
 
-  let baz = 
+  let _baz = 
         let getString = refute ["bang"] *> refute ["boom"]
             useString a = refute [a]
         in runValidate (getString >>= useString)
