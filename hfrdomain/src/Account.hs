@@ -161,10 +161,11 @@ openDaysSince account sinceUTC =
 
 -- | Close the bank account with the closeDate passed in. Checks if the account
 -- is already closed, in which case it errors out
-close :: forall m c. (MonadValidate [ErrorInfo] m) => (Account c) -> UTCTime -> m (Account c)
-close account closeDate = case isAccountClosed account of
-    Just closedOn -> refute [AccountAlreadyClosed (account ^. accountNo) closedOn]
-    Nothing       -> pure $ account & accountCloseDate ?~ closeDate
+close :: forall m c. (MonadValidate [ErrorInfo] m) => Account c -> UTCTime -> m (Account c)
+close account closeDate = maybe (pure canClose) alreadyClosed (isAccountClosed account)
+    where
+      alreadyClosed closedOn = refute [AccountAlreadyClosed (account ^. accountNo) closedOn]
+      canClose = account & accountCloseDate ?~ closeDate
 
 -- | Update the balance of an account after doing the following checks:
 -- a. the account is active
