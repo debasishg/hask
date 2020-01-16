@@ -42,6 +42,7 @@ dependencies:
 - safe-money-aeson
 - lens
 - scientific
+- containers
 
 
 library:

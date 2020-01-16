@@ -12,7 +12,7 @@
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Account
+module BankAccount
     (
       makeAccount
     , isAccountActive
@@ -20,9 +20,7 @@ module Account
     , openDaysSince
     , updateBalance
     , close
-    , Account
-    , accountNo
-    , accountOpenDate
+    , BankAccount
     , Env(..)) where
 
 import qualified Data.ByteString.Lazy.Char8 as L
@@ -38,29 +36,30 @@ import Control.Monad.Validate
 import Control.Monad.Reader
 import Control.Lens hiding (element)
 import GHC.Generics
+import GHC.TypeLits (KnownSymbol)
 
 import ValidateAeson
 
--- | The Account algebraic data type. The type parameter ccy indicates the base currency
+-- | The BankAccount algebraic data type. The type parameter ccy indicates the base currency
 -- for the account. And the current balance is maintained in this currency only.
 --
 -- The rate of interest has to be 0.0 for checking accounts and anything for savings accounts
-data Account = Account 
+data BankAccount ccy = BankAccount 
     { _accountNo          :: !Text
     , _accountType        :: AccountType  
     , _accountHolderName  :: !Text  
     , _accountOpenDate    :: !UTCTime 
     , _accountCloseDate   :: Maybe UTCTime 
-    , _currentBalance     :: Y.Dense "USD"
+    , _currentBalance     :: Y.Dense ccy
     , _rateOfInterest     :: {-# UNPACK #-} !Double 
     } deriving (Show)
 
 data AccountType = Ch | Sv deriving (Show, Generic, ToJSON, FromJSON)
 
-(makeLenses ''Account)
+$(makeLenses ''BankAccount)
 
--- | Smart constructor for making a Account from JSON data
-makeAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Account)
+-- | Smart constructor for making a BankAccount from JSON data
+makeAccount :: forall m c. (MonadReader Env m, MonadValidate [Error] m, KnownSymbol c) => Value -> IO (m (BankAccount c))
 makeAccount req = do 
     utcCurrent <- getCurrentTime  
     return $ withObject "request" req $ \o -> do
@@ -73,7 +72,7 @@ makeAccount req = do
         currBalance     <- withKey o "account_current_balance" parseCurrentBalance
         rateOfInt       <- withKey o "rate_of_interest" (parseRateOfInterest accType)
 
-        pure Account 
+        pure BankAccount 
             { _accountNo           = accNo 
             , _accountType         = accType
             , _accountHolderName   = accName 
@@ -123,15 +122,15 @@ makeAccount req = do
                   then refuteErr $ InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show openDate)
                   else pure dt
       
-            parseCurrentBalance :: Value -> m (Y.Dense "USD")
+            parseCurrentBalance :: Value -> m (Y.Dense c)
             parseCurrentBalance v = do
               n <- asMoney v
               b <- tolerate $ validateCurrentBalance n
               pure $ fromJust b
       
-            validateCurrentBalance :: Y.Dense "USD" -> m (Y.Dense "USD")
+            validateCurrentBalance :: Y.Dense c -> m (Y.Dense c)
             validateCurrentBalance balance = 
-              if balance >= (100 :: Y.Dense "USD")
+              if balance >= (100 :: Y.Dense c)
               then pure balance
               else refuteErr $ AccountBalanceLessThanMinimumBalance (T.pack (show balance))
       
@@ -145,16 +144,16 @@ makeAccount req = do
                                     v        -> refuteErr $ JSONBadValue "account-type" v }
 
 -- | Check if an account is not closed
-isAccountActive :: Account -> Bool 
+isAccountActive :: BankAccount c -> Bool 
 isAccountActive account = isNothing $ account ^. accountCloseDate
 
 -- | Check if the account is closed. If closed, return Maybe closeDate
 -- else return Nothing
-isAccountClosed :: Account -> Maybe UTCTime 
+isAccountClosed :: BankAccount c -> Maybe UTCTime 
 isAccountClosed account = account ^. accountCloseDate 
 
 -- | Returns the number of days the account is open since the date passed
-openDaysSince :: Account -> UTCTime -> Maybe NominalDiffTime
+openDaysSince :: BankAccount c -> UTCTime -> Maybe NominalDiffTime
 openDaysSince account sinceUTC =
     if not (isAccountActive account)
     then Nothing 
@@ -162,7 +161,7 @@ openDaysSince account sinceUTC =
 
 -- | Close the bank account with the closeDate passed in. Checks if the account
 -- is already closed, in which case it errors out
-close :: forall m. (MonadValidate [ErrorInfo] m) => Account -> UTCTime -> m Account
+close :: forall m c. (MonadValidate [ErrorInfo] m) => BankAccount c -> UTCTime -> m (BankAccount c)
 close account closeDate = maybe (pure canClose) alreadyClosed (isAccountClosed account)
     where
       alreadyClosed closedOn = refute [AccountAlreadyClosed (account ^. accountNo) closedOn]
@@ -171,7 +170,7 @@ close account closeDate = maybe (pure canClose) alreadyClosed (isAccountClosed a
 -- | Update the balance of an account after doing the following checks:
 -- a. the account is active
 -- b. if the amount passed is < 0 then ensure the debit does not violate min balance check
-updateBalance :: forall m. (MonadValidate [ErrorInfo] m) => Account -> Y.Dense "USD" -> m Account
+updateBalance :: forall m c. (MonadValidate [ErrorInfo] m, KnownSymbol c) => BankAccount c -> Y.Dense c -> m (BankAccount c)
 updateBalance account amount = 
     checkBalance >>= \acc -> pure $ acc & currentBalance %~ (+ amount)
   where
