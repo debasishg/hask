@@ -7,10 +7,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE MonoLocalBinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
 
 module Account
     (
@@ -31,33 +28,15 @@ import qualified Money as Y
 
 import Data.Maybe (fromJust, isNothing)
 import Data.Time
-import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import Data.Aeson (Value(..), decode, FromJSON, ToJSON)
+import Data.Aeson (Value(..), decode)
 import Control.Monad.Validate
 import Control.Monad.Reader
 import Control.Lens hiding (element)
-import GHC.Generics
 
 import ValidateAeson
-
--- | The Account algebraic data type. The type parameter ccy indicates the base currency
--- for the account. And the current balance is maintained in this currency only.
---
--- The rate of interest has to be 0.0 for checking accounts and anything for savings accounts
-data Account = Account 
-    { _accountNo          :: !Text
-    , _accountType        :: AccountType  
-    , _accountHolderName  :: !Text  
-    , _accountOpenDate    :: !UTCTime 
-    , _accountCloseDate   :: Maybe UTCTime 
-    , _currentBalance     :: Y.Dense "USD"
-    , _rateOfInterest     :: {-# UNPACK #-} !Double 
-    } deriving (Show)
-
-data AccountType = Ch | Sv deriving (Show, Generic, ToJSON, FromJSON)
-
-(makeLenses ''Account)
+import Repository.Schema
+import Repository.AccountType
 
 -- | Smart constructor for making a Account from JSON data
 makeAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Account)
@@ -73,15 +52,7 @@ makeAccount req = do
         currBalance     <- withKey o "account_current_balance" parseCurrentBalance
         rateOfInt       <- withKey o "rate_of_interest" (parseRateOfInterest accType)
 
-        pure Account 
-            { _accountNo           = accNo 
-            , _accountType         = accType
-            , _accountHolderName   = accName 
-            , _accountOpenDate     = accOpenDate
-            , _accountCloseDate    = accCloseDate
-            , _currentBalance      = currBalance
-            , _rateOfInterest      = rateOfInt 
-            } 
+        pure $ makeFullAccount accNo accType accName accOpenDate accCloseDate currBalance rateOfInt
           where 
             parseAccountType :: Value -> m AccountType
             parseAccountType = asAccountType

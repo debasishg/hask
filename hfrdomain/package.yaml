@@ -43,6 +43,11 @@ dependencies:
 - lens
 - scientific
 - containers
+- persistent
+- persistent-postgresql
+- persistent-template
+- persistent-sqlite
+- generic-aeson
 
 
 library:
