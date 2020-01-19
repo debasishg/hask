@@ -4,6 +4,8 @@ import Data.Text
 import Data.Time
 import Account
 
+-- | Repository abstraction that's independent of the underlying database 
+-- representation
 class (Monad m) => AccountRepository m where
     query            :: Text                     -- ^ query by account number
                      -> m (Maybe Account)        -- ^ the fetched account, if found

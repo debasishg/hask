@@ -26,17 +26,17 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
 
-import Data.Maybe (fromJust, isNothing)
-import Data.Time
-import Data.Text.Encoding (encodeUtf8)
-import Data.Aeson (Value(..), decode)
-import Control.Monad.Validate
-import Control.Monad.Reader
-import Control.Lens hiding (element)
+import           Data.Maybe (fromJust, isNothing)
+import           Data.Time
+import           Data.Text.Encoding (encodeUtf8)
+import           Data.Aeson (Value(..), decode)
+import           Control.Monad.Validate
+import           Control.Monad.Reader
+import           Control.Lens hiding (element)
 
-import ValidateAeson
-import Repository.Schema
-import Repository.AccountType
+import           ValidateAeson
+import           Repository.Schema
+import           Repository.AccountType
 
 -- | Smart constructor for making a Account from JSON data
 makeAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Account)
@@ -133,21 +133,21 @@ openDaysSince account sinceUTC =
 
 -- | Close the bank account with the closeDate passed in. Checks if the account
 -- is already closed, in which case it errors out
-close :: forall m. (MonadValidate [ErrorInfo] m) => Account -> UTCTime -> m Account
+close :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> UTCTime -> m Account
 close account closeDate = maybe (pure canClose) alreadyClosed (isAccountClosed account)
     where
-      alreadyClosed closedOn = refute [AccountAlreadyClosed (account ^. accountNo) closedOn]
+      alreadyClosed closedOn = refuteErr $ AccountAlreadyClosed (account ^. accountNo) closedOn
       canClose = account & accountCloseDate ?~ closeDate
 
 -- | Update the balance of an account after doing the following checks:
 -- a. the account is active
 -- b. if the amount passed is < 0 then ensure the debit does not violate min balance check
-updateBalance :: forall m. (MonadValidate [ErrorInfo] m) => Account -> Y.Dense "USD" -> m Account
+updateBalance :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> Y.Dense "USD" -> m Account
 updateBalance account amount = 
     checkBalance >>= \acc -> pure $ acc & currentBalance %~ (+ amount)
   where
     checkBalance = case isAccountClosed account of
-        Just closedOn -> refute [AccountAlreadyClosed (account ^. accountNo) closedOn]
+        Just closedOn -> refuteErr $ AccountAlreadyClosed (account ^. accountNo) closedOn
         Nothing       -> if amount < 0 && (account ^. currentBalance + amount < 100)
-                             then refute [InsufficientFundsInAccount (T.pack (show(account ^. currentBalance)))]
+                             then refuteErr $ InsufficientFundsInAccount (T.pack (show(account ^. currentBalance)))
                              else pure account

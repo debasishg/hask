@@ -15,16 +15,19 @@ module Repository.Schema where
 
 import qualified Money as Y
 
-import Data.Time
-import Data.Text (Text)
-import Money.Aeson()
-import Database.Persist.TH 
-import Database.Persist.Sqlite 
+import           Data.Time
+import           Data.Text (Text)
+import           Money.Aeson()
+import           Database.Persist (Key, Entity(..))
+import           Database.Persist.TH 
 
-import Repository.AccountType
-import PersistentMoney()
+import           Repository.AccountType
+import           PersistentMoney()
 
 type MoneyUSD = (Y.Dense "USD")
+
+unEntity :: Entity a -> a
+unEntity (Entity _ val_) = val_
 
 share 
     [ mkPersist sqlSettings { mpsGenerateLenses = True, mpsPrefixFields = False }
@@ -38,9 +41,11 @@ Account json
     accountCloseDate    UTCTime Maybe default=NULL
     currentBalance      MoneyUSD
     rateOfInterest      Double 
+    Primary accountNo
     deriving Show 
 |]
 
+type AccountKey = Key Account
 makeFullAccount :: Text
     -> AccountType
     -> Text

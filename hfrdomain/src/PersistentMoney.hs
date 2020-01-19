@@ -6,8 +6,8 @@ module PersistentMoney where
 import qualified Data.Text as T
 import qualified Money as Y
 
-import Database.Persist
-import Database.Persist.Sql
+import           Database.Persist
+import           Database.Persist.Sql
 
 -- |Typeclass instances for Money, which is not directly supported in persistent
 instance PersistField (Y.Dense currency) where

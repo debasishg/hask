@@ -10,8 +10,8 @@ import           Control.Monad.State (StateT, get, gets, put)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Control.Lens hiding (element)
 
-import Account
-import Repository.AccountRepository
+import           Account
+import           Repository.AccountRepository
 
 type AccountMap = M.Map Text Account 
 
@@ -29,7 +29,7 @@ instance AccountRepository InMemoryAccountRepository where
         db <- get
         let db' = M.insert (account ^. accountNo) account db
         put db'
-        return account
+        return $ account
 
     queryByOpenDate dt = InMemoryAccountRepository $ 
         Prelude.filter (\a -> a ^. accountOpenDate == dt) <$> gets M.elems

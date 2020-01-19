@@ -43,6 +43,7 @@ extra-deps:
 - monad-validate-1.2.0.0@sha256:9850f408431098b28806dd464b6825a88a0b56c84f380d7fe0454c1df9d6f881,3505
 - safe-money-aeson-0.1.1@sha256:d7383134649d5e63177731f3b5a0ff1992a1d4edf9d224178b264eb4fcdd6c14,1405
 - generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
+- transformers-either-0.1.1@sha256:ec3d6fefd90e243b51aecebfc0ebc5db6381c261d473ea2df7ed7b501a8fb961,1501
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

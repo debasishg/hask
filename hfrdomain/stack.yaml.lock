@@ -25,6 +25,13 @@ packages:
       sha256: 85ec0612d5947744954c9f83d8debe0354feab3644abe8df455c9f6cb768cb5d
   original:
     hackage: generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
+- completed:
+    hackage: transformers-either-0.1.1@sha256:ec3d6fefd90e243b51aecebfc0ebc5db6381c261d473ea2df7ed7b501a8fb961,1501
+    pantry-tree:
+      size: 317
+      sha256: a69c9cbc1d8340c63cc8a9bbd718e13a41869d30a7c84d27be94bbc04ad73a69
+  original:
+    hackage: transformers-either-0.1.1@sha256:ec3d6fefd90e243b51aecebfc0ebc5db6381c261d473ea2df7ed7b501a8fb961,1501
 snapshots:
 - completed:
     size: 524154

@@ -45,9 +45,11 @@ dependencies:
 - containers
 - persistent
 - persistent-postgresql
-- persistent-template
 - persistent-sqlite
+- persistent-template
 - generic-aeson
+- monad-logger
+- transformers-either
 
 
 library:
