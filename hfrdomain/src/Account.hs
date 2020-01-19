@@ -15,7 +15,8 @@ module Account
     , isAccountActive
     , isAccountClosed
     , openDaysSince
-    , updateBalance
+    , credit
+    , debit
     , close
     , Account
     , accountNo
@@ -151,3 +152,9 @@ updateBalance account amount =
         Nothing       -> if amount < 0 && (account ^. currentBalance + amount < 100)
                              then refuteErr $ InsufficientFundsInAccount (T.pack (show(account ^. currentBalance)))
                              else pure account
+
+debit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> Y.Dense "USD" -> m Account
+debit account amount = updateBalance account ((-1) * amount)
+
+credit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> Y.Dense "USD" -> m Account
+credit = updateBalance 

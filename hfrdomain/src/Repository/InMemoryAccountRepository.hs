@@ -29,7 +29,7 @@ instance AccountRepository InMemoryAccountRepository where
         db <- get
         let db' = M.insert (account ^. accountNo) account db
         put db'
-        return $ account
+        return account
 
     queryByOpenDate dt = InMemoryAccountRepository $ 
         Prelude.filter (\a -> a ^. accountOpenDate == dt) <$> gets M.elems

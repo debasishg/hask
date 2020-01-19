@@ -43,17 +43,19 @@ runDomainBehavior :: Account -> EitherT [Error] IO Account
 runDomainBehavior acc = 
   let env = Env []
       aggr = do 
-        rdr <- runValidateT <$> makeObject acc 
+        rdr <- runValidateT <$> composeBehaviors acc 
         return $ runReader rdr env
 
   in EitherT aggr
 
-makeObject :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> IO (m Account)
-makeObject acc = do
+composeBehaviors :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> IO (m Account)
+composeBehaviors acc = do
   curr <- getCurrentTime
-  return $ updateBalance acc (300 :: Y.Dense "USD") >>= 
-    flip updateBalance (-200 :: Y.Dense "USD") >>= 
-      flip close curr
+
+  return   $ credit acc (800 :: Y.Dense "USD") 
+         >>= flip debit (200 :: Y.Dense "USD") 
+         >>= flip debit (100 :: Y.Dense "USD") 
+         >>= flip close curr
 
 runStoreActions :: Account -> IO ()
 runStoreActions account =
