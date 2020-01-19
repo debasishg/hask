@@ -134,8 +134,8 @@ openDaysSince account sinceUTC =
 
 -- | Close the bank account with the closeDate passed in. Checks if the account
 -- is already closed, in which case it errors out
-close :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> UTCTime -> m Account
-close account closeDate = maybe (pure canClose) alreadyClosed (isAccountClosed account)
+close :: forall m. (MonadReader Env m, MonadValidate [Error] m) => UTCTime -> Account -> m Account
+close closeDate account = maybe (pure canClose) alreadyClosed (isAccountClosed account)
     where
       alreadyClosed closedOn = refuteErr $ AccountAlreadyClosed (account ^. accountNo) closedOn
       canClose = account & accountCloseDate ?~ closeDate
@@ -143,8 +143,8 @@ close account closeDate = maybe (pure canClose) alreadyClosed (isAccountClosed a
 -- | Update the balance of an account after doing the following checks:
 -- a. the account is active
 -- b. if the amount passed is < 0 then ensure the debit does not violate min balance check
-updateBalance :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> Y.Dense "USD" -> m Account
-updateBalance account amount = 
+updateBalance :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Y.Dense "USD" -> Account -> m Account
+updateBalance amount account = 
     checkBalance >>= \acc -> pure $ acc & currentBalance %~ (+ amount)
   where
     checkBalance = case isAccountClosed account of
@@ -153,8 +153,8 @@ updateBalance account amount =
                              then refuteErr $ InsufficientFundsInAccount (T.pack (show(account ^. currentBalance)))
                              else pure account
 
-debit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> Y.Dense "USD" -> m Account
-debit account amount = updateBalance account ((-1) * amount)
+debit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Y.Dense "USD" -> Account -> m Account
+debit amount = updateBalance ((-1) * amount) 
 
-credit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> Y.Dense "USD" -> m Account
+credit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Y.Dense "USD" -> Account -> m Account
 credit = updateBalance 

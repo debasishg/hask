@@ -52,10 +52,10 @@ composeBehaviors :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Ac
 composeBehaviors acc = do
   curr <- getCurrentTime
 
-  return   $ credit acc (800 :: Y.Dense "USD") 
-         >>= flip debit (200 :: Y.Dense "USD") 
-         >>= flip debit (100 :: Y.Dense "USD") 
-         >>= flip close curr
+  return   $ credit (800 :: Y.Dense "USD") acc
+         >>= debit (200 :: Y.Dense "USD") 
+         >>= debit (100 :: Y.Dense "USD") 
+         >>= close curr
 
 runStoreActions :: Account -> IO ()
 runStoreActions account =
