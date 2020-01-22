@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveAnyClass            #-}
 {-# LANGUAGE DeriveGeneric             #-}
 
-module Repository.AccountType where
+module AccountType where
 
 import qualified Database.Persist.TH as PTH
 import Data.Aeson (FromJSON, ToJSON)

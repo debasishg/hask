@@ -8,7 +8,7 @@ import           Database.Persist (get, insert, selectList, (==.))
 import           Database.Persist.Sqlite (SqlPersistT)
 
 import           Repository.AccountRepository
-import           Repository.Schema
+import           Schema
 
 -- | Instance of AccountRepository for `SqlPersistT` (which is `ReaderT SqlBackend`)
 instance (MonadIO m) => AccountRepository (SqlPersistT m) where

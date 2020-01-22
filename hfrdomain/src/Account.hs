@@ -36,8 +36,8 @@ import           Control.Monad.Reader
 import           Control.Lens hiding (element)
 
 import           ValidateAeson
-import           Repository.Schema
-import           Repository.AccountType
+import           Schema
+import           AccountType
 
 -- | Smart constructor for making a Account from JSON data
 makeAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Account)

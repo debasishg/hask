@@ -7,7 +7,7 @@ import           Control.Monad.Logger (runStdoutLoggingT, LoggingT,
 import           Control.Monad.Reader (runReaderT)
 
 import           Database.Persist.Sqlite (withSqliteConn, runMigration, SqlPersistT)
-import           Repository.Schema
+import           Schema
 
 logFilter :: a -> LogLevel -> Bool
 logFilter _ LevelError     = True

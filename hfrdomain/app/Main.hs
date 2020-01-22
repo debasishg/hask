@@ -18,7 +18,7 @@ import           Database.Persist.Sqlite (runMigration)
 
 import           Account
 import           ValidateAeson
-import           Repository.Schema
+import           Schema
 import           Repository.SqliteUtils
 import           Repository.AccountRepository
 import           Repository.SqliteAccountRepository ()

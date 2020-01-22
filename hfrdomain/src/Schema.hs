@@ -11,7 +11,7 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DataKinds                  #-}
 
-module Repository.Schema where
+module Schema where
 
 import qualified Money as Y
 
@@ -21,7 +21,7 @@ import           Money.Aeson()
 import           Database.Persist (Key, Entity(..))
 import           Database.Persist.TH 
 
-import           Repository.AccountType
+import           AccountType
 import           PersistentMoney()
 
 type MoneyUSD = (Y.Dense "USD")
