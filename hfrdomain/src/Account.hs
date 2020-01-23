@@ -15,6 +15,7 @@ module Account
     , isAccountActive
     , isAccountClosed
     , openDaysSince
+    , updateBalance
     , credit
     , debit
     , close
