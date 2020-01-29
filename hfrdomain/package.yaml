@@ -50,6 +50,8 @@ dependencies:
 - generic-aeson
 - monad-logger
 - transformers-either
+- conduit
+- unliftio-core
 
 
 library:

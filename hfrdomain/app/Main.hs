@@ -22,16 +22,38 @@ import           Account
 import           ValidateAeson
 import           Schema
 import           Repository.SqliteUtils
-import           Repository.AccountRepository
+import           Repository.AccountRepository -- (AccountRepository)
 import           Repository.SqliteAccountRepository ()
 import           Service.AccountService
 
 main :: IO ()
 main = do 
-  aggregate <- runEitherT $ makeAggregateFromContext >>= \a -> runDomainServices (a ^. accountNo)
+  aggregate <- runEitherT $ makeAggregateFromContext >>= runDomainBehavior
   case aggregate of
     Left err      -> print $ show err
-    Right account -> runStoreActions account
+    Right account -> runRepositoryActions account
+
+step1 :: IO Account
+step1 = do 
+  aggregate <- runEitherT $ makeAggregateFromContext >>= runDomainBehavior
+  either (fail . show) runStoreRepositoryActions aggregate
+
+step2 :: Text -> IO Account
+step2 accno = do
+  maybeAccount <- runQueryRepositoryActions accno 
+  maybe (fail "Invalid account") runDomain maybeAccount
+  where
+    runDomain account = do
+      result <- runEitherT $ runDomainBehavior account
+      either (fail . show) return result 
+
+composite :: IO Account
+composite = step1 >>= \a -> step2 (a ^. accountNo)
+
+--          IO Account -> (Account -> IO Account) -> Maybe Account -> IO Account
+-- maybe :: b          -> (a -> b)                -> Maybe a       -> b
+-- either :: (a -> c) -> (b -> c) -> Either a b -> c
+
 
 makeAggregateFromContext :: EitherT [Error] IO Account
 makeAggregateFromContext = 
@@ -58,7 +80,7 @@ composeBehaviors acc = do
   return   $ credit (800 :: Y.Dense "USD") acc
          >>= debit (200 :: Y.Dense "USD") 
          >>= debit (100 :: Y.Dense "USD") 
-         >>= close curr
+         -- >>= close curr
 
 runDomainServices :: Text -> EitherT [Error] IO Account
 runDomainServices acc = 
@@ -78,9 +100,19 @@ composeServices acc = do
          >>= \b -> debitAccount (100 :: Y.Dense "USD") (b ^. accountNo)
          >>= close curr
 
-runStoreActions :: Account -> IO ()
-runStoreActions account =
+runRepositoryActions :: Account -> IO ()
+runRepositoryActions account =
   runSqliteAction $ do
     _ <- runMigration migrateAll
     b <- store account
     liftIO $ print b
+
+runStoreRepositoryActions :: Account -> IO Account
+runStoreRepositoryActions account =
+  runSqliteAction $ do
+    _ <- runMigration migrateAll
+    store account
+
+runQueryRepositoryActions :: Text -> IO (Maybe Account)
+runQueryRepositoryActions account =
+  runSqliteAction $ query account

@@ -3,14 +3,19 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
 
-module Repository.AccountRepository where
+module Repository.AccountRepository 
+    (
+      query,
+      store,
+      queryByOpenDate,
+      allAccounts,
+      AccountRepository(..)) where
 
 import Data.Text
 import Data.Time
 import           Control.Monad.Validate
 import           Control.Monad.Trans.Class      ( lift )
 import           Control.Monad.Trans.Reader
-import           Control.Monad.Identity
 import           Data.Functor.Identity
 
 import Account
@@ -47,11 +52,23 @@ instance {-# OVERLAPPABLE #-} (AccountRepository m) => AccountRepository (Reader
   {-# INLINE allAccounts #-}
 
 instance AccountRepository Identity where
-  query = query 
-  store = store
-  queryByOpenDate = queryByOpenDate
-  allAccounts = allAccounts
-  {-# INLINE query #-}
-  {-# INLINE store #-}
-  {-# INLINE queryByOpenDate #-}
-  {-# INLINE allAccounts #-}
+  query = undefined
+  store = undefined 
+  queryByOpenDate = undefined
+  allAccounts = undefined
+
+-- instance AccountRepository Identity where
+--   query ano = do
+--     x <- query ano
+--     return $ runIdentity (Identity x)
+--   -- query = runIdentity (Identity query)
+--   store a = do 
+--     x <- store a 
+--     return $ runIdentity (Identity x)
+-- 
+--   queryByOpenDate = runIdentity (Identity queryByOpenDate)
+--   allAccounts = runIdentity (Identity allAccounts)
+--   {-# INLINE query #-}
+--   {-# INLINE store #-}
+--   {-# INLINE queryByOpenDate #-}
+--   {-# INLINE allAccounts #-}
