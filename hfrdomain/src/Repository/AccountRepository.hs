@@ -30,6 +30,8 @@ class (Monad m) => AccountRepository m where
     queryByOpenDate  :: UTCTime                  -- ^ query by account open date
                      -> m [Account]              -- ^ the fetched account list, (maybe empty)
     allAccounts      :: m [Account]              -- ^ fetch all accounts
+    upsert           :: Account                  -- ^ store an account
+                     -> m Account                
 
 instance (AccountRepository m) => AccountRepository (ValidateT e m) where
   query = lift . query
