@@ -15,7 +15,6 @@ import Account
 import ValidateAeson
 import Repository.AccountRepository
 import Repository.SqliteAccountRepository
-import Repository.AccountRepo
 import           Repository.SqliteUtils
 import           Control.Monad.Trans.Class      ( lift )
 import Control.Monad.IO.Unlift (MonadIO (..), MonadUnliftIO)
