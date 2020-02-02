@@ -24,7 +24,6 @@ runSqliteAction2 action = withSqliteConn ":memory:" $ \backend ->
 
 runSqliteAction :: SqlPersistT (LoggingT IO) a -> IO a
 runSqliteAction action = runStdoutLoggingT $ filterLogger logFilter $
-    -- withSqliteConn ":memory:" $ \backend ->
     withSqliteConn "/tmp/domain.db" $ \backend ->
         runReaderT action backend
 
