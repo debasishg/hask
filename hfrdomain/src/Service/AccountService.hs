@@ -6,22 +6,28 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | Exposes coarser level domain services in terms of actions that can be done on accounts.
+-- The service layer publishes an ADT named `AccountAction` that models each action that can be
+-- done on an account. The service layer also implements a combinator `actionCombinator` that
+-- allows implementation of composition of multiple actions through a foldBind pattern.
 module Service.AccountService 
     (
       persistAccounts
     , runQuery
-    , Transaction (Debit, Credit)
-    , txnCombinator
-    , runTransactionsForAccountNo
-    , runTransactionsForAccount
-    , runTransactionsForAccounts
+    , AccountAction (Debit, Credit, Close)
+    , actionCombinator
+    , runActionsForAccountNo
+    , runActionsForAccount
+    , runActionsForAccounts
     , makeAggregateFromContext
     , openNewAccounts
-    , runMigrateActions) where
+    , runMigrateActions
+    ) where
 
 import qualified Money as Y
 import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
+import           Data.Time
 import           Control.Monad.Validate
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
@@ -34,7 +40,12 @@ import           Repository.SqliteUtils (runSqliteAction)
 import           Repository.AccountRepository
 import           Repository.SqliteAccountRepository()
 
-data Transaction = Debit (Y.Dense "USD") | Credit (Y.Dense "USD") deriving (Show, Read)
+-- | Some of the actions that can be done on an account, e.g. debit, credit,
+-- close, open, reopen etc.
+data AccountAction = Debit (Y.Dense "USD") 
+                   | Credit (Y.Dense "USD") 
+                   | Close UTCTime
+                   deriving (Show, Read)
 
 -- | This is a generic pattern of processing a list of monadic functions through
 -- `(>>=)`. `composeParts` just composes the Kleisli arrows through a `foldr`. 
@@ -45,44 +56,45 @@ composeParts = foldr (>=>) return
 foldBinds :: (Monad m) => m a -> [a -> m a] -> m a
 foldBinds m fs = m >>= composeParts fs
 
--- | a combinator for composing various transactions on an Account
-txnCombinator :: (MonadReader Env m, MonadValidate [Error] m) => Account -> [Transaction] -> m Account
-txnCombinator a txns =
+-- | a combinator for composing various actions on an Account
+actionCombinator :: (MonadReader Env m, MonadValidate [Error] m) => Account -> [AccountAction] -> m Account
+actionCombinator a txns =
   let fns = map toFunction txns
   in foldBinds (Prelude.head fns a) (Prelude.tail fns)
   where 
     toFunction (Debit amt) = debit amt 
     toFunction (Credit amt) = credit amt 
+    toFunction (Close closeDate) = close closeDate 
 
--- | a combinator that runs transactions for a specific account number
-runTransactionsForAccountNo :: [Transaction] -> Text -> IO Account
-runTransactionsForAccountNo transactions accNo = do
+-- | a combinator that runs actions for a specific account number
+runActionsForAccountNo :: [AccountAction] -> Text -> IO Account
+runActionsForAccountNo actions accNo = do
   maybeAccount <- runQuery accNo 
-  maybe (fail "invalid account") (runTransactionsForAccount transactions) maybeAccount
+  maybe (fail "invalid account") (runActionsForAccount actions) maybeAccount
 
--- | a combinator that runs transactions for a specific account 
-runTransactionsForAccount :: [Transaction] -> Account -> IO Account
-runTransactionsForAccount transactions account = do
-  a <- (runEitherT . makeTransactions transactions) account 
+-- | a combinator that runs actions for a specific account 
+runActionsForAccount :: [AccountAction] -> Account -> IO Account
+runActionsForAccount actions account = do
+  a <- (runEitherT . makeActions actions) account 
   either (fail . show) return a
   where
-    makeTransactions :: [Transaction] -> Account -> EitherT [Error] IO Account
-    makeTransactions txns acc = 
+    makeActions :: [AccountAction] -> Account -> EitherT [Error] IO Account
+    makeActions txns acc = 
       let env = Env []
           aggr = do 
-            rdr <- runValidateT <$> composeTransactions acc txns
+            rdr <- runValidateT <$> composeActions acc txns
             return $ runReader rdr env
 
       in EitherT aggr
       where
-        composeTransactions :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> [Transaction] -> IO (m Account)
-        composeTransactions a tns = 
-          return $ txnCombinator a tns
+        composeActions :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> [AccountAction] -> IO (m Account)
+        composeActions a tns = 
+          return $ actionCombinator a tns
 
--- | a combinator that runs transactions for multiple accounts
-runTransactionsForAccounts :: [Transaction] -> [Account] -> IO [Account]
-runTransactionsForAccounts transactions = 
-  mapM (runTransactionsForAccount transactions) 
+-- | a combinator that runs actions for multiple accounts
+runActionsForAccounts :: [AccountAction] -> [Account] -> IO [Account]
+runActionsForAccounts actions = 
+  mapM (runActionsForAccount actions) 
 
 makeAggregateFromContext :: Text -> Text -> Text -> EitherT [Error] IO Account
 makeAggregateFromContext accNo accType accountName = 

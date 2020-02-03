@@ -15,14 +15,14 @@ module Account
     , isAccountActive
     , isAccountClosed
     , openDaysSince
-    -- , updateBalance
     , credit
     , debit
     , close
     , Account
     , accountNo
     , accountOpenDate
-    , Env(..)) where
+    , Env(..)
+    ) where
 
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
