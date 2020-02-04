@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module PersistentMoney where
+module Model.PersistentMoney where
 
 import qualified Data.Text as T
 import qualified Money as Y

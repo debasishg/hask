@@ -7,7 +7,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
-module ValidateAeson where
+module Model.ValidateAeson where
 
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.HashMap.Strict as M
@@ -24,27 +24,7 @@ import Data.Scientific (Scientific, toBoundedInteger, toBoundedRealFloat)
 import Money.Aeson()
 import GHC.TypeLits (KnownSymbol)
 
-newtype Env
-    = Env {envPath :: [Text]}
-    deriving (Show, Eq)
-
-data Error = Error { errPath :: [Text], errInfo :: ErrorInfo }
-    deriving (Show, Eq)
-data ErrorInfo
-    = JSONBadValue Text Value
-    | JSONMissingKey Text
-    | InvalidDateValueInJSON Text
-    | InvalidMoneyValueInJSON Text
-    | InvalidAccountNumber Text 
-    | InvalidAccountName Text
-    | InvalidAccountOpenDate Text
-    | InvalidAccountOpenCloseDateCombination Text
-    | AccountBalanceLessThanMinimumBalance Text
-    | AccountAlreadyClosed Text UTCTime
-    | InsufficientFundsInAccount Text
-    | InvalidAccountType Text
-    | RateNotApplicableForCheckingAccount
-    deriving (Show, Eq)
+import Errors
 
 pushPath :: forall m a. (MonadReader Env m) => Text -> m a -> m a
 pushPath path = local (\env -> env { envPath = path : envPath env })

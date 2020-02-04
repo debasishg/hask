@@ -10,7 +10,7 @@ import           Control.Monad.State (StateT, get, gets, put)
 import           Control.Monad.IO.Class (liftIO, MonadIO)
 import           Control.Lens hiding (element)
 
-import           Account
+import           Model.Account
 import           Repository.AccountRepository
 
 type AccountMap = M.Map Text Account 

@@ -22,20 +22,27 @@ module Service.AccountService
     , makeAggregateFromContext
     , openNewAccounts
     , runMigrateActions
+    , interestFor
+    , surchargeOnAccruedInterest
+    , surchargeOn
     ) where
 
 import qualified Money as Y
 import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
+import           Data.Maybe
 import           Data.Time
+import qualified Control.Category as C
 import           Control.Monad.Validate
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
+import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (runMigration)
 
-import           Account
-import           Schema
-import           ValidateAeson
+import           Model.Account
+import           Model.AccountType
+import           Model.Schema
+import           Errors
 import           Repository.SqliteUtils (runSqliteAction)
 import           Repository.AccountRepository
 import           Repository.SqliteAccountRepository()
@@ -52,6 +59,9 @@ data AccountAction = Debit (Y.Dense "USD")
 -- And `foldBinds` binds them through. Adopted from the SoF thread https://stackoverflow.com/a/8717016
 composeParts :: (Monad m) => [a -> m a] -> a -> m a
 composeParts = foldr (>=>) return 
+
+combineParts :: (C.Category cat) => [cat a a] -> cat a a
+combineParts = foldr (C.>>>) C.id 
 
 foldBinds :: (Monad m) => m a -> [a -> m a] -> m a
 foldBinds m fs = m >>= composeParts fs
@@ -123,3 +133,17 @@ runQuery account =
 persistAccounts :: [Account] -> IO [Account]
 persistAccounts accounts =
   runSqliteAction $ mapM upsert accounts
+
+interestFor :: Account -> Y.Dense "USD"
+interestFor acc = case acc ^. accountType of
+  Ch -> 0 :: Y.Dense "USD"
+  Sv -> fromJust $ Y.dense $ toRational (acc ^. currentBalance) * toRational (acc ^. rateOfInterest)
+
+surchargeOnAccruedInterest :: Y.Dense "USD" -> Y.Dense "USD"
+surchargeOnAccruedInterest interest = 
+  if interest <= (100 :: Y.Dense "USD")
+    then (0 :: Y.Dense "USD")
+    else fromJust $ Y.dense $ toRational interest * 0.01
+
+surchargeOn :: Account -> Y.Dense "USD"
+surchargeOn = surchargeOnAccruedInterest . interestFor

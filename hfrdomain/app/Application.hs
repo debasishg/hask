@@ -11,7 +11,7 @@ import qualified Money as Y
 import           Data.Foldable()
 import           Data.Time
 
-import           Account
+import           Model.Account
 import           Service.AccountService
 
 main :: IO [Account]

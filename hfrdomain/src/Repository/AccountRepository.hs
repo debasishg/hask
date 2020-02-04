@@ -6,7 +6,7 @@ module Repository.AccountRepository (AccountRepository (..)) where
 
 import Data.Text
 import Data.Time
-import Account
+import Model.Account
 
 -- | Repository abstraction that's independent of the underlying database 
 -- representation

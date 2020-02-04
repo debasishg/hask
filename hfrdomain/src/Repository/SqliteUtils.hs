@@ -7,7 +7,7 @@ import           Control.Monad.Logger (runStdoutLoggingT, LoggingT,
 import           Control.Monad.Reader (runReaderT)
 
 import           Database.Persist.Sqlite (withSqliteConn, runMigration, SqlPersistT)
-import           Schema
+import           Model.Schema
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 
 

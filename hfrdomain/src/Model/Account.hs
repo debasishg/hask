@@ -9,7 +9,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Account
+module Model.Account
     (
       makeAccount
     , isAccountActive
@@ -36,9 +36,10 @@ import           Control.Monad.Validate
 import           Control.Monad.Reader
 import           Control.Lens hiding (element)
 
-import           ValidateAeson
-import           Schema
-import           AccountType
+import           Model.ValidateAeson
+import           Model.Schema
+import           Model.AccountType
+import           Errors
 
 -- | Smart constructor for making a Account from JSON data
 makeAccount :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Account)
