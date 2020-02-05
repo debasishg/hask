@@ -1,2 +1,2 @@
 # hask
-Haskell learning playground
+Haskell domain modeling playground
