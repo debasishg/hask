@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Application where
 
@@ -23,5 +24,16 @@ main =   runMigrateActions
          utcCurrent <- getCurrentTime  
          runActionsForAccounts [Credit (200 :: Y.Dense "USD"), 
                                 Credit (400 :: Y.Dense "USD"),
-                                Close utcCurrent] accounts 
+                                Close utcCurrent,
+                                Credit (400 :: Y.Dense "USD")] accounts 
          >>= persistAccounts
+
+app :: IO Account
+app =    runMigrateActions 
+     >>  openNewAccounts 
+     >>= persistAccounts
+     >>  runAllAccountActions
+     where
+       runAllAccountActions = 
+         runActionsForAccountNo [Credit (200 :: Y.Dense "USD"), Credit (400 :: Y.Dense "USD")] "0123456789" 
+         >>= persistAccount

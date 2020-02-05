@@ -1,3 +1,6 @@
+-- | Most of the following functions are adopted from 
+-- https://github.com/hasura/monad-validate/blob/master/test/Control/Monad/ValidateSpec.hs
+
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}

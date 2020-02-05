@@ -13,6 +13,7 @@
 module Service.AccountService 
     (
       persistAccounts
+    , persistAccount
     , runQuery
     , AccountAction (Debit, Credit, Close)
     , actionCombinator
@@ -22,27 +23,22 @@ module Service.AccountService
     , makeAggregateFromContext
     , openNewAccounts
     , runMigrateActions
-    , interestFor
-    , surchargeOnAccruedInterest
-    , surchargeOn
     ) where
 
 import qualified Money as Y
 import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
-import           Data.Maybe
 import           Data.Time
-import qualified Control.Category as C
+import           Control.Arrow
 import           Control.Monad.Validate
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
-import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (runMigration)
 
 import           Model.Account
-import           Model.AccountType
 import           Model.Schema
 import           Errors
+import           Combinators
 import           Repository.SqliteUtils (runSqliteAction)
 import           Repository.AccountRepository
 import           Repository.SqliteAccountRepository()
@@ -54,23 +50,12 @@ data AccountAction = Debit (Y.Dense "USD")
                    | Close UTCTime
                    deriving (Show, Read)
 
--- | This is a generic pattern of processing a list of monadic functions through
--- `(>>=)`. `composeParts` just composes the Kleisli arrows through a `foldr`. 
--- And `foldBinds` binds them through. Adopted from the SoF thread https://stackoverflow.com/a/8717016
-composeParts :: (Monad m) => [a -> m a] -> a -> m a
-composeParts = foldr (>=>) return 
-
-combineParts :: (C.Category cat) => [cat a a] -> cat a a
-combineParts = foldr (C.>>>) C.id 
-
-foldBinds :: (Monad m) => m a -> [a -> m a] -> m a
-foldBinds m fs = m >>= composeParts fs
-
 -- | a combinator for composing various actions on an Account
 actionCombinator :: (MonadReader Env m, MonadValidate [Error] m) => Account -> [AccountAction] -> m Account
-actionCombinator a txns =
+actionCombinator account txns =
   let fns = map toFunction txns
-  in foldBinds (Prelude.head fns a) (Prelude.tail fns)
+  -- in foldBinds (Prelude.head fns a) (Prelude.tail fns)
+  in runKleisli (flattenAndCompose $ map Kleisli fns) account 
   where 
     toFunction (Debit amt) = debit amt 
     toFunction (Credit amt) = credit amt 
@@ -134,16 +119,6 @@ persistAccounts :: [Account] -> IO [Account]
 persistAccounts accounts =
   runSqliteAction $ mapM upsert accounts
 
-interestFor :: Account -> Y.Dense "USD"
-interestFor acc = case acc ^. accountType of
-  Ch -> 0 :: Y.Dense "USD"
-  Sv -> fromJust $ Y.dense $ toRational (acc ^. currentBalance) * toRational (acc ^. rateOfInterest)
-
-surchargeOnAccruedInterest :: Y.Dense "USD" -> Y.Dense "USD"
-surchargeOnAccruedInterest interest = 
-  if interest <= (100 :: Y.Dense "USD")
-    then (0 :: Y.Dense "USD")
-    else fromJust $ Y.dense $ toRational interest * 0.01
-
-surchargeOn :: Account -> Y.Dense "USD"
-surchargeOn = surchargeOnAccruedInterest . interestFor
+persistAccount :: Account -> IO Account
+persistAccount account =
+  runSqliteAction $ upsert account

@@ -17,6 +17,10 @@ module Model.Account
     , openDaysSince
     , credit
     , debit
+    , interestFor
+    , taxOnAccruedInterest
+    , surchargeOnTax
+    , feeFor
     , close
     , Account
     , accountNo
@@ -160,3 +164,27 @@ debit amount = updateBalance ((-1) * amount)
 
 credit :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Y.Dense "USD" -> Account -> m Account
 credit = updateBalance 
+
+interestFor :: Account -> Y.Dense "USD"
+interestFor acc = case acc ^. accountType of
+  Ch -> 0 :: Y.Dense "USD"
+  Sv -> fromJust $ Y.dense $ toRational (acc ^. currentBalance) * toRational (acc ^. rateOfInterest)
+
+taxOnAccruedInterest :: Y.Dense "USD" -> Y.Dense "USD"
+taxOnAccruedInterest interest = 
+  if interest <= (100 :: Y.Dense "USD")
+    then (0 :: Y.Dense "USD")
+    else fromJust $ Y.dense $ toRational interest * (-0.01)
+
+surchargeOnTax :: Y.Dense "USD" -> Y.Dense "USD"
+surchargeOnTax tax = 
+  if tax <= (100 :: Y.Dense "USD")
+    then (0 :: Y.Dense "USD")
+    else fromJust $ Y.dense $ toRational tax * (-0.01)
+
+feeFor :: Account -> Y.Dense "USD" -> Y.Dense "USD"
+feeFor acc balance = case acc ^. accountType of
+  Ch -> 0 :: Y.Dense "USD"
+  Sv -> if balance <= 1000
+          then 0 :: Y.Dense "USD"
+          else fromJust $ Y.dense $ toRational balance * (-0.01)
