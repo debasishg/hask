@@ -23,6 +23,7 @@ module Service.AccountService
     , makeAggregateFromContext
     , openNewAccounts
     , runMigrateActions
+    , balanceInCurrency
     ) where
 
 import qualified Money as Y
@@ -30,6 +31,7 @@ import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
 import           Data.Time
 import           Control.Arrow
+import           Control.Lens
 import           Control.Monad.Validate
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
@@ -122,3 +124,15 @@ persistAccounts accounts =
 persistAccount :: Account -> IO Account
 persistAccount account =
   runSqliteAction $ upsert account
+
+-- | Gives a lens for getting / setting account balance in a specific currency
+-- given the appropriate exchange rate
+balanceInCurrency :: Y.ExchangeRate "USD" target -> Lens' Account (Y.Dense target)
+balanceInCurrency usd2target = lens (getter usd2target) (setter $ Y.exchangeRateRecip usd2target)
+  where
+    getter :: Y.ExchangeRate "USD" target -> Account -> Y.Dense target
+    getter exchangeRate account = 
+      Y.exchange exchangeRate (account ^. currentBalance) 
+
+    setter :: Y.ExchangeRate target "USD" -> Account -> Y.Dense target -> Account
+    setter exchangeRate account amount = account & currentBalance %~ (+ Y.exchange exchangeRate amount)

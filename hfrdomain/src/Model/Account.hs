@@ -25,7 +25,6 @@ module Model.Account
     , Account
     , accountNo
     , accountOpenDate
-    , balanceIn
     , Env(..)
     ) where
 
@@ -189,7 +188,3 @@ feeFor acc balance = case acc ^. accountType of
   Sv -> if balance <= 1000
           then 0 :: Y.Dense "USD"
           else fromJust $ Y.dense $ toRational balance * (-0.01)
-
-balanceIn :: Account -> Y.ExchangeRate "USD" target -> Y.Dense target
-balanceIn account exchangeRate = 
-  Y.exchange exchangeRate (account ^. currentBalance) 
