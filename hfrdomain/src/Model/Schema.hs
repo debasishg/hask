@@ -22,6 +22,7 @@ import           Database.Persist (Key, Entity(..))
 import           Database.Persist.TH 
 
 import           Model.AccountType
+import           Model.TransactionType
 import           Model.PersistentMoney()
 
 type MoneyUSD = (Y.Dense "USD")
@@ -34,14 +35,22 @@ share
     , mkMigrate "migrateAll"
     ] [persistLowerCase|
 Account json  
-    accountNo           Text
-    accountType         AccountType sqltype=varchar  
-    accountHolderName   Text  
-    accountOpenDate     UTCTime default=CURRENT_TIME
-    accountCloseDate    UTCTime Maybe default=NULL
-    currentBalance      MoneyUSD
-    rateOfInterest      Double 
+    accountNo                   Text
+    accountType                 AccountType sqltype=varchar  
+    accountHolderName           Text  
+    accountOpenDate             UTCTime default=CURRENT_TIME
+    accountCloseDate            UTCTime Maybe default=NULL
+    currentBalance              MoneyUSD
+    rateOfInterest              Double 
     Primary accountNo
+    deriving Show 
+
+Transaction json
+    transactionType             TransactionType sqltype=varchar
+    transactionDate             UTCTime default=CURRENT_TIME
+    transactionAmount           MoneyUSD
+    transactionAccountNo        Text
+    Foreign                     Account fkAccount transactionAccountNo
     deriving Show 
 |]
 
@@ -63,4 +72,18 @@ makeFullAccount accNo accType accName accOpenDate accCloseDate currBalance rateO
         , _accountCloseDate = accCloseDate
         , _currentBalance = currBalance
         , _rateOfInterest = rateOfInt 
+    }
+
+type TransactionKey = Key Transaction
+makeFullTransaction :: TransactionType
+    -> UTCTime 
+    -> Y.Dense "USD"
+    -> Text
+    -> Transaction
+makeFullTransaction txnType txnDate txnAmount txnAccountNo =
+    Transaction {
+          _transactionType = txnType
+        , _transactionDate = txnDate
+        , _transactionAmount = txnAmount
+        , _transactionAccountNo = txnAccountNo
     }

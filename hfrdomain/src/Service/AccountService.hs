@@ -20,7 +20,7 @@ module Service.AccountService
     , runActionsForAccountNo
     , runActionsForAccount
     , runActionsForAccounts
-    , makeAggregateFromContext
+    , makeAccountAggregateFromContext
     , openNewAccounts
     , runMigrateActions
     , balanceInCurrency
@@ -93,8 +93,8 @@ runActionsForAccounts :: [AccountAction] -> [Account] -> IO [Account]
 runActionsForAccounts actions = 
   mapM (runActionsForAccount actions) 
 
-makeAggregateFromContext :: Text -> Text -> Text -> EitherT [Error] IO Account
-makeAggregateFromContext accNo accType accountName = 
+makeAccountAggregateFromContext :: Text -> Text -> Text -> EitherT [Error] IO Account
+makeAccountAggregateFromContext accNo accType accountName = 
   let env = Env []
       testcase input = do
         accRdr <- runValidateT <$> makeAccount input
@@ -104,9 +104,9 @@ makeAggregateFromContext accNo accType accountName =
 
 openNewAccounts :: IO [Account]
 openNewAccounts = do 
-  aggr1 <- runEitherT (makeAggregateFromContext "0123456789" "\"Sv\"" "debasish")
-  aggr2 <- runEitherT (makeAggregateFromContext "1234567890" "\"Sv\"" "paramita")
-  aggr3 <- runEitherT (makeAggregateFromContext "2345678901" "\"Sv\"" "aarush")
+  aggr1 <- runEitherT (makeAccountAggregateFromContext "0123456789" "\"Sv\"" "debasish")
+  aggr2 <- runEitherT (makeAccountAggregateFromContext "1234567890" "\"Sv\"" "paramita")
+  aggr3 <- runEitherT (makeAccountAggregateFromContext "2345678901" "\"Sv\"" "aarush")
   either (fail . show) return $ sequence [aggr1, aggr2, aggr3]
 
 runMigrateActions :: IO ()

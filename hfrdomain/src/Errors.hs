@@ -30,5 +30,8 @@ data ErrorInfo
     | InsufficientFundsInAccount Text
     | InvalidAccountType Text
     | RateNotApplicableForCheckingAccount
+    | InvalidTransactionType Text
+    | InvalidTransactionDate Text
+    | TransactionAmountNegative Text
     deriving (Show, Eq)
 

@@ -8,7 +8,7 @@ import           Control.Monad.Reader (runReaderT)
 
 import           Database.Persist.Sqlite (withSqliteConn, runMigration, SqlPersistT)
 import           Model.Schema
-import Control.Monad.IO.Unlift (MonadUnliftIO)
+import           Control.Monad.IO.Unlift (MonadUnliftIO)
 
 
 logFilter :: a -> LogLevel -> Bool
