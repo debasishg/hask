@@ -8,7 +8,7 @@ import qualified Database.Persist.TH as PTH
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics
 
-data TransactionType = Dr | Cr deriving (Show, Read, Generic)
+data TransactionType = Dr | Cr deriving (Eq, Show, Read, Generic)
 instance FromJSON TransactionType
 instance ToJSON TransactionType
 

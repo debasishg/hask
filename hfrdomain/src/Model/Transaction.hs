@@ -80,4 +80,3 @@ makeTransaction req = do
               if amt >= (0 :: Y.Dense "USD")
               then pure amt
               else refuteErr $ TransactionAmountNegative (T.pack (show amt))
-      
