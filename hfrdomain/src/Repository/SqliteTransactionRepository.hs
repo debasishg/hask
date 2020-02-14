@@ -14,7 +14,7 @@ import           Model.Schema
 -- | Instance of TransactionRepository for `SqlPersistT` (which is `ReaderT SqlBackend`)
 instance (MonadIO m) => TransactionRepository (SqlPersistT m) where
   query ano = do
-      es <- selectList [TransactionAccountNo ==. ano ] []
+      es <- selectList [TransactionAccountNo ==. ano] []
       return $ unEntity <$> es
 
   store txn = fromSqlKey <$> insert txn
