@@ -7,8 +7,8 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Repository.AccountRepository where 
@@ -66,15 +66,24 @@ instance FromRow Account where
 instance ToRow Account where
   toRow (Account ano atype aname aodate acdate abal arate) = toRow (ano, atype, aname, aodate, acdate, abal, arate)
 
+-- CREATE TABLE "account"
+-- ("account_no" VARCHAR NOT NULL,
+--  "account_type" varchar NOT NULL,
+--  "account_holder_name" VARCHAR NOT NULL,
+--  "account_open_date" TIMESTAMP NOT NULL DEFAULT CURRENT_TIME,
+--  "account_close_date" TIMESTAMP NULL DEFAULT NULL,
+--  "current_balance" varchar NOT NULL,
+--  "rate_of_interest" REAL NOT NULL, PRIMARY KEY ("account_no"))
+
 runAccountRepository :: Member (Embed IO) r => Sem (AccountRepository ': r) a -> Sem (Input SQL.Connection ': r) a
 runAccountRepository = reinterpret $ \case
   QueryAccount ano -> do
     conn <- input
     account <- embed $ SQL.queryNamed conn
-              "SELECT * FROM account WHERE accountno = :accountno"
+              "SELECT * FROM account WHERE account_no = :accountno"
               [":accountno" := ano]
     return $ listToMaybe account
 
   Store a -> do
     conn <- input
-    embed $ execute conn "INSERT INTO account (accountno, accounttype, accountholdername, accountopendate, accountclosedate, currentbalance, rateofinterest) VALUES (?, ?, ?, ?, ?, ?, ?)" (a)
+    embed $ execute conn "INSERT INTO account (account_no, account_type, account_holder_name, account_open_date, account_close_date, current_balance, rate_of_interest) VALUES (?, ?, ?, ?, ?, ?, ?)" (a)
