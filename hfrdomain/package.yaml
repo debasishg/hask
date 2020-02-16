@@ -52,6 +52,15 @@ dependencies:
 - transformers-either
 - conduit
 - unliftio-core
+- polysemy >= 1.2.3.0 
+- polysemy-plugin 
+- polysemy-zoo 
+- sqlite-simple
+# - polysemy >= 1.2.1.0 && < 1.3
+# - polysemy-plugin >= 0.2.3.0 && < 0.3
+# - polysemy-zoo >= 0.6.0.1 && < 0.7
+
+
 
 
 library:

@@ -9,6 +9,7 @@ import           Control.Monad.Reader (runReaderT)
 import           Database.Persist.Sqlite (withSqliteConn, runMigration, SqlPersistT)
 import           Model.Schema
 import           Control.Monad.IO.Unlift (MonadUnliftIO)
+import Data.Text
 
 
 logFilter :: a -> LogLevel -> Bool
@@ -25,6 +26,11 @@ runSqliteAction2 action = withSqliteConn ":memory:" $ \backend ->
 runSqliteAction :: SqlPersistT (LoggingT IO) a -> IO a
 runSqliteAction action = runStdoutLoggingT $ filterLogger logFilter $
     withSqliteConn "/tmp/domain.db" $ \backend ->
+        runReaderT action backend
+
+runSqliteAction1 :: Text -> SqlPersistT (LoggingT IO) a -> IO a
+runSqliteAction1 dbfile action = runStdoutLoggingT $ filterLogger logFilter $
+    withSqliteConn dbfile $ \backend ->
         runReaderT action backend
 
 migrateDB :: IO ()
