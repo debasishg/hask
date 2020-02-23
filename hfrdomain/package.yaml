@@ -25,6 +25,7 @@ ghc-options:
 - -Wincomplete-record-updates
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
+- -fplugin=Polysemy.Plugin
 
 dependencies:
 - base >= 4.7 && < 5
@@ -56,6 +57,7 @@ dependencies:
 - polysemy-plugin 
 - polysemy-zoo 
 - sqlite-simple
+- resource-pool
 # - polysemy >= 1.2.1.0 && < 1.3
 # - polysemy-plugin >= 0.2.3.0 && < 0.3
 # - polysemy-zoo >= 0.6.0.1 && < 0.7

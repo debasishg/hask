@@ -47,15 +47,18 @@ runQueryAccount :: SQL.Connection -> Text -> IO (Maybe Account)
 runQueryAccount conn ano = 
   runAllEffects conn (queryAccount ano)
 
-main :: Account -> IO ()
-main a =
-  withPasswordDBConnection $ \conn -> do
-    putStrLn "Adding an account"
-    runAddAccount conn a
-
-    putStr "Querying an account"
-    runQueryAccount conn (a ^. accountNo) >>= printResult
-
-  where
-    printResult (Just ac)  = print ac
-    printResult Nothing = putStrLn "Not found"
+main :: IO()
+main = undefined 
+-- main :: Account -> IO ()
+-- main a =
+--   withPasswordDBConnection $ \conn -> do
+--     putStrLn "Adding an account"
+--     runAddAccount conn a
+-- 
+--     putStr "Querying an account"
+--     runQueryAccount conn (a ^. accountNo) >>= printResult
+-- 
+--   where
+--     printResult (Just ac)  = print ac
+--     printResult Nothing = putStrLn "Not found"
+-- 

@@ -12,12 +12,12 @@
 -- allows implementation of composition of multiple actions through a foldBind pattern.
 module Service.AccountService 
     (
-      persistAccounts
-    , persistAccount
-    , runQuery
-    , AccountAction (Debit, Credit, Close)
+      -- persistAccounts
+    -- , persistAccount
+      -- runQuery
+      AccountAction (Debit, Credit, Close)
     , actionCombinator
-    , runActionsForAccountNo
+    -- , runActionsForAccountNo
     , runActionsForAccount
     , runActionsForAccounts
     , makeAccountAggregateFromContext
@@ -42,8 +42,8 @@ import           Model.Schema
 import           Errors
 import           Combinators
 import           Repository.SqliteUtils (runSqliteAction)
-import           Repository.AccountRepository
-import           Repository.SqliteAccountRepository()
+-- import           Repository.AccountRepository
+-- import           Repository.SqliteAccountRepository()
 
 -- | Some of the actions that can be done on an account, e.g. debit, credit,
 -- close, open, reopen etc.
@@ -64,10 +64,10 @@ actionCombinator account txns =
     toFunction (Close closeDate) = close closeDate 
 
 -- | a combinator that runs actions for a specific account number
-runActionsForAccountNo :: [AccountAction] -> Text -> IO Account
-runActionsForAccountNo actions accNo = do
-  maybeAccount <- runQuery accNo 
-  maybe (fail "invalid account") (runActionsForAccount actions) maybeAccount
+-- runActionsForAccountNo :: [AccountAction] -> Text -> IO Account
+-- runActionsForAccountNo actions accNo = do
+--   maybeAccount <- runQuery accNo 
+--   maybe (fail "invalid account") (runActionsForAccount actions) maybeAccount
 
 -- | a combinator that runs actions for a specific account 
 runActionsForAccount :: [AccountAction] -> Account -> IO Account
@@ -113,17 +113,17 @@ runMigrateActions :: IO ()
 runMigrateActions =
   runSqliteAction $ runMigration migrateAll
 
-runQuery :: Text -> IO (Maybe Account)
-runQuery account =
-  runSqliteAction $ query account
-
-persistAccounts :: [Account] -> IO [Account]
-persistAccounts accounts =
-  runSqliteAction $ mapM upsert accounts
-
-persistAccount :: Account -> IO Account
-persistAccount account =
-  runSqliteAction $ upsert account
+-- runQuery :: Text -> IO (Maybe Account)
+-- runQuery account =
+--   runSqliteAction $ query account
+-- 
+-- persistAccounts :: [Account] -> IO [Account]
+-- persistAccounts accounts =
+--   runSqliteAction $ mapM upsert accounts
+-- 
+-- persistAccount :: Account -> IO Account
+-- persistAccount account =
+--   runSqliteAction $ upsert account
 
 -- | Gives a lens for getting / setting account balance in a specific currency
 -- given the appropriate exchange rate
