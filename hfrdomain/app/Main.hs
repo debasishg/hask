@@ -2,63 +2,50 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
 
 module Main where
 
-import qualified Database.SQLite.Simple as SQL
-import           Data.Function          ((&))
-import           Data.Text
+import qualified Data.Text as T
+import qualified Money as Y
 
-import           Polysemy
-import           Polysemy.Input
+import           Data.Maybe (fromJust)
+import           Data.Function ((&))
+import           Control.Monad.Logger (runStdoutLoggingT)
+import           Control.Monad.IO.Class
 import           Control.Lens
+import           Database.Persist.Sqlite (withSqlitePool)
 
-import Model.Account
-import Repository.AccountRepository
+import           Model.Account
+import           Model.Schema
+import           Service.AccountService
 
-runAllEffects :: SQL.Connection
-              -> (forall r. Member AccountRepository r => Sem r a)
-              -> IO a
-runAllEffects conn program =
-  program                    
-    & runAccountRepository   
-    & runInputConst conn  
-    & runM
+connectionString :: T.Text
+connectionString = "/tmp/domain.db"
 
-dbFile :: FilePath
-dbFile = "/tmp/account.db"
+openConnections :: Int
+openConnections = 3
 
-withPasswordDBConnection :: (SQL.Connection -> IO a) -> IO a
-withPasswordDBConnection f = SQL.withConnection dbFile $ \conn -> do
-  SQL.execute_ conn "CREATE TABLE IF NOT EXISTS account (account_no VARCHAR NOT NULL, \
-                    \ account_type varchar NOT NULL, \
-                    \ account_holder_name VARCHAR NOT NULL, \
-                    \ account_open_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIME, \
-                    \ account_close_date TIMESTAMP NULL DEFAULT NULL, \
-                    \ current_balance varchar NOT NULL, \
-                    \ rate_of_interest REAL NOT NULL, PRIMARY KEY (account_no))"
-  f conn
+main :: IO ()
+main = runMigrateActions >> 
+           openNewAccounts >>= 
+               flip behavior "0123456789"
 
-runAddAccount :: SQL.Connection -> Account -> IO ()
-runAddAccount conn account = 
-  runAllEffects conn (store account)
+-- | Sample use case
+-- 1. add a bunch of accounts to the Database
+-- 2. for the account number specified, update the current balance by 100 USD
+-- 3. store the updated account back to the database
+-- 4. query that updated account and print the account details
+behavior :: [Account] -> T.Text -> IO ()
+behavior accounts ano = runStdoutLoggingT 
+             . withSqlitePool connectionString openConnections 
+                 $ \pool -> liftIO $ do
+                       addAccounts pool accounts 
+                       acc <- query pool ano
+                       let modified = fromJust acc & currentBalance %~ (+ (100 :: Y.Dense "USD"))
+                       updated <- insertOrUpdate pool modified 
+                       query pool (updated ^. accountNo) >>= printResult
 
-runQueryAccount :: SQL.Connection -> Text -> IO (Maybe Account)
-runQueryAccount conn ano = 
-  runAllEffects conn (queryAccount ano)
-
-main :: IO()
-main = undefined 
--- main :: Account -> IO ()
--- main a =
---   withPasswordDBConnection $ \conn -> do
---     putStrLn "Adding an account"
---     runAddAccount conn a
--- 
---     putStr "Querying an account"
---     runQueryAccount conn (a ^. accountNo) >>= printResult
--- 
---   where
---     printResult (Just ac)  = print ac
---     printResult Nothing = putStrLn "Not found"
--- 
+  where
+    printResult (Just ac)  = print ac
+    printResult Nothing = putStrLn "Not found"

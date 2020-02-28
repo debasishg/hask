@@ -12,21 +12,28 @@
 -- allows implementation of composition of multiple actions through a foldBind pattern.
 module Service.AccountService 
     (
-      -- persistAccounts
-    -- , persistAccount
-      -- runQuery
       AccountAction (Debit, Credit, Close)
     , actionCombinator
-    -- , runActionsForAccountNo
     , runActionsForAccount
+    , runActionsForAccountNo
     , runActionsForAccounts
     , makeAccountAggregateFromContext
     , openNewAccounts
     , runMigrateActions
     , balanceInCurrency
+    , runAllEffects
+    , addAccount
+    , addAccounts
+    , queryAllAccounts
+    , query
+    , queryAccountsByOpenDate
+    , insertOrUpdate
     ) where
 
+import qualified Data.Text as T
 import qualified Money as Y
+
+import           Data.Pool
 import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
 import           Data.Time
@@ -35,15 +42,16 @@ import           Control.Lens
 import           Control.Monad.Validate
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
-import           Database.Persist.Sqlite (runMigration)
+import           Polysemy          
+import           Polysemy.Input          
+import           Database.Persist.Sqlite (SqlBackend, runMigration)
 
 import           Model.Account
 import           Model.Schema
 import           Errors
 import           Combinators
 import           Repository.SqliteUtils (runSqliteAction)
--- import           Repository.AccountRepository
--- import           Repository.SqliteAccountRepository()
+import           Repository.AccountRepository
 
 -- | Some of the actions that can be done on an account, e.g. debit, credit,
 -- close, open, reopen etc.
@@ -64,10 +72,10 @@ actionCombinator account txns =
     toFunction (Close closeDate) = close closeDate 
 
 -- | a combinator that runs actions for a specific account number
--- runActionsForAccountNo :: [AccountAction] -> Text -> IO Account
--- runActionsForAccountNo actions accNo = do
---   maybeAccount <- runQuery accNo 
---   maybe (fail "invalid account") (runActionsForAccount actions) maybeAccount
+runActionsForAccountNo :: Pool SqlBackend -> [AccountAction] -> Text -> IO Account
+runActionsForAccountNo conn actions accNo = do
+  maybeAccount <- query conn accNo 
+  maybe (fail "invalid account") (runActionsForAccount actions) maybeAccount
 
 -- | a combinator that runs actions for a specific account 
 runActionsForAccount :: [AccountAction] -> Account -> IO Account
@@ -113,17 +121,36 @@ runMigrateActions :: IO ()
 runMigrateActions =
   runSqliteAction $ runMigration migrateAll
 
--- runQuery :: Text -> IO (Maybe Account)
--- runQuery account =
---   runSqliteAction $ query account
--- 
--- persistAccounts :: [Account] -> IO [Account]
--- persistAccounts accounts =
---   runSqliteAction $ mapM upsert accounts
--- 
--- persistAccount :: Account -> IO Account
--- persistAccount account =
---   runSqliteAction $ upsert account
+runAllEffects :: Pool SqlBackend -> Sem '[AccountRepository, Input (Pool SqlBackend), Embed IO] a -> IO a
+runAllEffects conn program =
+  program                    
+    & runAccountRepository
+    & runInputConst conn  
+    & runM
+
+addAccount :: Pool SqlBackend -> Account -> IO ()
+addAccount conn account = 
+  runAllEffects conn (store account)
+
+addAccounts :: Pool SqlBackend -> [Account] -> IO ()
+addAccounts conn accounts = 
+  runAllEffects conn (storeMany accounts)
+
+query :: Pool SqlBackend -> T.Text -> IO (Maybe Account)
+query conn ano = 
+  runAllEffects conn (queryAccount ano)
+
+queryAllAccounts :: Pool SqlBackend -> IO [Account]
+queryAllAccounts conn =
+  runAllEffects conn allAccounts
+
+queryAccountsByOpenDate :: Pool SqlBackend -> UTCTime -> IO [Account]
+queryAccountsByOpenDate conn dt =
+  runAllEffects conn (queryByOpenDate dt)
+
+insertOrUpdate :: Pool SqlBackend -> Account -> IO Account
+insertOrUpdate conn acc = 
+  runAllEffects conn (upsert acc)
 
 -- | Gives a lens for getting / setting account balance in a specific currency
 -- given the appropriate exchange rate
