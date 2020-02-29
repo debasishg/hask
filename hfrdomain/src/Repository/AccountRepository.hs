@@ -20,10 +20,11 @@ import           Control.Lens
 import           Polysemy          
 import           Polysemy.Input          
 import           Database.Persist (get, insert_, insertMany_, replace, selectList, (==.))
-import           Database.Persist.Sqlite (SqlBackend, SqlPersistT, runSqlPool)
+import           Database.Persist.Sqlite (SqlBackend)
 
 import           Model.Account
 import           Model.Schema
+import           Repository.SqliteUtils
 
 -- | Repository abstraction that's independent of the underlying database 
 -- representation
@@ -37,9 +38,6 @@ data AccountRepository m a where
 
 makeSem ''AccountRepository
 
-runDB :: forall b r. Members [Embed IO, Input (Pool SqlBackend)] r => SqlPersistT IO b -> Sem r b
-runDB action = embed . runSqlPool action =<< input
-
 runAccountRepository :: forall r b. Members [Embed IO, Input (Pool SqlBackend)] r => Sem (AccountRepository ': r) b -> Sem r b
 runAccountRepository = interpret $ \case
   QueryAccount ano -> runDB (get (AccountKey ano)) 
@@ -50,14 +48,14 @@ runAccountRepository = interpret $ \case
       doAllAccounts = do
         es <- selectList [] []
         return $ unEntity <$> es
-  QueryByOpenDate date -> runDB (doQueryByOpenDate date)
+  QueryByOpenDate date -> runDB doQueryByOpenDate
     where
-      doQueryByOpenDate dt = do 
-        es <- selectList [AccountOpenDate ==. dt] []
+      doQueryByOpenDate = do 
+        es <- selectList [AccountOpenDate ==. date] []
         return $ unEntity <$> es
-  Upsert acc -> runDB (doUpsert acc)
+  Upsert acc -> runDB doUpsert
     where
-      doUpsert ac = do 
-        a <- get (AccountKey $ ac ^. accountNo)
-        _ <- maybe (insert_ ac) (replace (AccountKey $ ac ^. accountNo)) a
-        return ac
+      doUpsert = do 
+        a <- get (AccountKey $ acc ^. accountNo)
+        _ <- maybe (insert_ acc) (replace (AccountKey $ acc ^. accountNo)) a
+        return acc

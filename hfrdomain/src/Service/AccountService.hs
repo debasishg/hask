@@ -21,7 +21,6 @@ module Service.AccountService
     , openNewAccounts
     , runMigrateActions
     , balanceInCurrency
-    , runAllEffects
     , addAccount
     , addAccounts
     , queryAllAccounts
