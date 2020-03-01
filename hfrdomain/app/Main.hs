@@ -19,6 +19,7 @@ import           Database.Persist.Sqlite (withSqlitePool)
 import           Model.Account
 import           Model.Schema
 import           Service.AccountService
+import           Service.Banking
 
 connectionString :: T.Text
 connectionString = "/tmp/domain.db"
@@ -29,7 +30,7 @@ openConnections = 3
 main :: IO ()
 main = runMigrateActions >> 
            openNewAccounts >>= 
-               flip behavior "0123456789"
+               flip behavior "0123456789" 
 
 -- | Sample use case
 -- 1. add a bunch of accounts to the Database
@@ -49,3 +50,8 @@ behavior accounts ano = runStdoutLoggingT
   where
     printResult (Just ac)  = print ac
     printResult Nothing = putStrLn "Not found"
+
+execute :: T.Text -> IO ()
+execute accountno = runStdoutLoggingT
+  . withSqlitePool connectionString openConnections
+    $ \pool -> liftIO $ netValueTransactionsForAccount pool accountno
