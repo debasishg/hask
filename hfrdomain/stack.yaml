@@ -4,6 +4,11 @@
 # For advanced use and comprehensive documentation of the format, please see:
 # https://docs.haskellstack.org/en/stable/yaml_configuration/
 
+# A warning or info to be displayed to the user on config load.
+user-message: |
+  Warning (added by new or init): Some packages were found to be incompatible with the resolver and have been left commented out in the packages section.
+  You can omit this message by removing it from stack.yaml
+
 # Resolver to choose a 'specific' stackage snapshot or a compiler version.
 # A snapshot resolver dictates the compiler version and the set of packages
 # to be used for project dependencies. For example:
@@ -17,7 +22,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-14.20
+resolver: nightly-2020-03-01
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -28,8 +33,13 @@ resolver: lts-14.20
 #   subdirs:
 #   - auto-update
 #   - wai
-packages:
+packages: 
 - .
+# The following packages have been ignored due to incompatibility with the
+# resolver compiler, dependency conflicts with other packages
+# or unsatisfied dependencies.
+#- .
+
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
@@ -39,11 +49,16 @@ packages:
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
+# extra-deps: []
 extra-deps: 
 - monad-validate-1.2.0.0@sha256:9850f408431098b28806dd464b6825a88a0b56c84f380d7fe0454c1df9d6f881,3505
 - safe-money-aeson-0.1.1@sha256:d7383134649d5e63177731f3b5a0ff1992a1d4edf9d224178b264eb4fcdd6c14,1405
 - generic-aeson-0.2.0.10@sha256:9d151244afd715c4ad6ce7d3f24fb04e0110f32a825b0838e34cd96523f94622,1090
 - transformers-either-0.1.1@sha256:ec3d6fefd90e243b51aecebfc0ebc5db6381c261d473ea2df7ed7b501a8fb961,1501
+- polysemy-plugin-0.2.5.0@sha256:67e30be568a141b852aace1a60e180cb5060fbb2835365a81a3ea779536d6d35,2952
+- polysemy-zoo-0.7.0.0@sha256:e98ba9620128df8f8aea6adec5a0e324103324a2d2368930a2e214a2c334551b,3900
+- compact-0.1.0.1@sha256:a74976cfdb16a76ca006b58f2a952d604e3244b404e0458a1ec1c255d7d7c8eb,1997
+
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

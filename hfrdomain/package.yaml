@@ -56,7 +56,7 @@ dependencies:
 - polysemy >= 1.2.3.0 
 - polysemy-plugin 
 - polysemy-zoo 
-- sqlite-simple
+# - sqlite-simple
 - resource-pool
 
 library:

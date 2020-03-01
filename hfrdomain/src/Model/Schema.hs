@@ -10,6 +10,9 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Model.Schema where
 
