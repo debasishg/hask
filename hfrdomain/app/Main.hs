@@ -10,7 +10,6 @@ import qualified Data.Text as T
 import qualified Money as Y
 
 import           Data.Maybe (fromJust)
-import           Data.Function ((&))
 import           Control.Monad.Logger (runStdoutLoggingT)
 import           Control.Monad.IO.Class
 import           Control.Lens
