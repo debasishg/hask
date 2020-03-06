@@ -22,7 +22,7 @@ Every model in the project is designed using the following principles:
 
 * A model is built as an aggregate using a smart constructor that takes an unvalidated object entering the bounded context from the edges. In this project we assume a json value entering the context from outside and getting the shape of a validated aggregate as it leaves the smart constructor. Here's an example for the `Account` model:
 
-```
+```haskell
 makeAccount :: forall m. (MonadReader Env m, 
                           MonadValidate [Error] m => Value -> IO (m Account)
 ```
@@ -31,7 +31,7 @@ In this example `makeAccount` takes a `Value` which is an aeson type and generat
 
 * A model comes out from the json value _always_ as a _validated_ entity - the aggregate. The validation is done using a monad transformer `ValidateT` offered by the [`monad-validate`](https://hackage.haskell.org/package/monad-validate-1.2.0.0/docs/Control-Monad-Validate.html) library. `ValidateT`, despite being a monad transformer, is designed not to necessarily halt on the first error. Hence the validation of model offers an accumulating semantics - all errors are accumulated and then reported to the client. Here's a snippet how we use the monadic validation and yet have the _accumulating semantics_ of all errors :
 
-```
+```haskell
 makeAccount req = do 
     utcCurrent <- getCurrentTime  
     return $ withObject "request" req $ \o -> do
@@ -48,7 +48,7 @@ makeAccount req = do
 
 * Model validation uses the _parse-then-validate_ idiom, loosely corresponding to what [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) recommends. We parse the json data and only if it passes the structural validation, we do the domain level validations. Here's an example of how we parse a date in json and then validate for the domain logic:
 
-```
+```haskell
 parseAccountOpenDate curr v = do 
     dt       <- asDate v
     openDate <- tolerate $ validateAccountOpenDate curr dt
@@ -67,7 +67,7 @@ validateAccountOpenDate current d =
 
 This is the abstraction over the data layer and contains the functions to access the data layer without worrying too much about the details of the underlying database platform. The repository is also a domain abstraction - hence the contracts that it publishes need to speak the domain vocabulary. Here's a sample of the contracts that the `AccountRepository` publishes:
 
-```
+```haskell
 -- | Repository abstraction that's independent of the underlying database 
 -- representation
 data AccountRepository m a where
@@ -85,7 +85,7 @@ data AccountRepository m a where
 
 A repository at the implementation level interacts with external systems like databases. Hence it's imperative that this layer of abstraction be effectful. In this iteration of design we used an effects library [polysemy](https://hackage.haskell.org/package/polysemy). I am not going to discuss details of what polysemy does - there are quite a few blog posts on this. What makes use of polysemy (or other similar libraries) effective is that it makes the effects very explicit as part of the contract. Here's an example of how we interpret each of our repository's functions effectfully:
 
-```
+```haskell
 runAccountRepository :: forall r b. Members [Embed IO, Input (Pool SqlBackend)] r => Sem (AccountRepository ': r) b -> Sem r b
 ```
 
@@ -104,7 +104,7 @@ Further note that we are using [`persistent`](https://hackage.haskell.org/packag
 The core design of an effectful repository is principled around an integration of `persistent` with `polysemy`. And this is the _final_ interpreter that will run each of the effectful functions of the repository. (Thanks to 
 Georgi Lyubenov on Haskell mailing list for the help in designing this).
 
-```
+```haskell
 runDB :: forall b r. Members [Embed IO, Input (Pool SqlBackend)] r => SqlPersistT IO b -> Sem r b
 runDB action = embed . runSqlPool action =<< input
 ```
@@ -118,7 +118,7 @@ This design honors one of the salient principles of DDD - _making implicit thing
 
 With `runDB` as the interpreter, the rest of the interpretation of our repository functions become as simple as using the `Database.persist` APIs:
 
-```
+```haskell
 runAccountRepository = interpret $ \case
   QueryAccount ano -> runDB (get (AccountKey ano)) 
   ... 
@@ -133,7 +133,7 @@ Enter domain services.
 Suppose I would like to query all accounts that were opened on a specific date. We need an API that takes a database connection, a specific date and would return a list of accounts as output. We are doing IO and hence it has also got to be part of the signature. Here's an example :
 
 
-```
+```haskell
 queryAccountsByOpenDate :: Pool SqlBackend -> UTCTime -> IO [Account]
 queryAccountsByOpenDate conn dt =
   runAllEffects conn (queryByOpenDate dt)
@@ -143,7 +143,7 @@ Here `queryByOpenDate` is a function of the repository which needs to be run und
 
 It's the functionality of `runAllEffects` that handles all effects, peels them all one by one and hands over the `IO` to us :
 
-```
+```haskell
 runAllEffects :: Pool SqlBackend -> Sem '[AccountRepository, Input (Pool SqlBackend), Embed IO] a -> IO a
 runAllEffects conn program =
   program                    -- [AccountRepository, Input (Pool SqlBackend), Embed IO] 
@@ -160,7 +160,7 @@ A domain service may be more complex and may need to interact with multiple repo
 
 Here's an example:
 
-```
+```haskell
 -- | a domain service that accesses multiple repositories to fetch account and
 -- | transactions, computes the net value of all transactions fetched and updates
 -- | the balance in the account repository
@@ -172,7 +172,7 @@ netValueTransactionsForAccount conn ano = runAllEffects conn doNetValueComputati
 
 Te implementation of `netValueTransactionsForAccount` is not important as long as we can ensure that it can use all the effectful functions of the underlying repositories. The secret sauce is, once again, `runAllEffects` which has to ensure that effects are sequenced compositionally:
 
-```
+```haskell
 runAllEffects :: 
      Pool SqlBackend 
   -> Sem '[AR.AccountRepository, TR.TransactionRepository, Input (Pool SqlBackend), Embed IO] a 
