@@ -63,6 +63,31 @@ validateAccountOpenDate current d =
 
 * Every model is its own module. It has the data and the functions that go along with the model. These functions are the domain behaviors for that model only.
 
+* Currently we have 2 model elements - `Account` and `Transaction`, defined as follows:
+
+```haskell
+Account json  
+    accountNo                   Text
+    accountType                 AccountType sqltype=varchar  
+    accountHolderName           Text  
+    accountOpenDate             UTCTime default=CURRENT_TIME
+    accountCloseDate            UTCTime Maybe default=NULL
+    currentBalance              MoneyUSD
+    rateOfInterest              Double 
+    Primary accountNo
+    deriving Show 
+
+Transaction json
+    transactionType             TransactionType sqltype=varchar
+    transactionDate             UTCTime default=CURRENT_TIME
+    transactionAmount           MoneyUSD
+    transactionAccountNo        Text
+    Foreign                     Account fkAccount transactionAccountNo
+    deriving Show 
+```
+
+In `Account` we have `accountNo` as the primary key, which is also the foreign key in `Transaction` named `transactionAccountNo`. In `Transaction` we rely on an automatically generated `id` as the primary key. The domain models are linked to the database schema using `persistent` that generates the necessary artifacts  using Template Haskell.
+
 ## The Repository
 
 This is the abstraction over the data layer and contains the functions to access the data layer without worrying too much about the details of the underlying database platform. The repository is also a domain abstraction - hence the contracts that it publishes need to speak the domain vocabulary. Here's a sample of the contracts that the `AccountRepository` publishes:

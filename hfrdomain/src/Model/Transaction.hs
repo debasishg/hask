@@ -31,7 +31,7 @@ import           Model.Schema
 import           Model.TransactionType
 import           Errors
 
--- | Smart constructor for making a Account from JSON data
+-- | Smart constructor for making a Transaction from JSON data
 makeTransaction :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Value -> IO (m Transaction)
 makeTransaction req = do 
     utcCurrent <- getCurrentTime  
