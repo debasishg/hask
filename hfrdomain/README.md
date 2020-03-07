@@ -179,13 +179,22 @@ runAllEffects ::
   -> IO a
 
 runAllEffects conn program =
-  program                    
-    & AR.runAccountRepository
-    & TR.runTransactionRepository
-    & runInputConst conn  
+  program                          -- [AccountRepository, TransactionRepository, Input (Pool SqlBackend), Embed IO]  
+    & AR.runAccountRepository      -- [TransactionRepository, Input (Pool SqlBackend), Embed IO]
+    & TR.runTransactionRepository  -- [Input (Pool SqlBackend), Embed IO]
+    & runInputConst conn           -- [Embed IO]
     & runM
 ```
 
 Almost similar to what we had in the last section - just added another repository to the stack - polysemy takes care of the rest.
 
+## Integrating them all
 
+Integrating the domain model, repository and services together is quite straightforward once you have the individual components aptly typed. Here's how to execute the above service API using a connection pool from a sqlite database engine:
+
+```haskell
+execute :: T.Text -> IO ()
+execute accountno = runStdoutLoggingT
+  . withSqlitePool connectionString openConnections
+    $ \pool -> liftIO $ netValueTransactionsForAccount pool accountno
+```
