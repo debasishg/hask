@@ -9,7 +9,6 @@ module Main where
 import qualified Data.Text as T
 import qualified Money as Y
 
-import           Data.Maybe (fromJust)
 import           Control.Monad.Logger (runStdoutLoggingT)
 import           Control.Monad.IO.Class
 import           Control.Lens
@@ -32,7 +31,7 @@ main = runMigrateActions >>
 
 -- | Sample use case
 -- 1. add a bunch of accounts to the Database
--- 2. for the account number specified, update the current balance by 100 USD
+-- 2. for the account number specified, run a series of actions (debit and credit)
 -- 3. store the updated account back to the database
 -- 4. query that updated account and print the account details
 behavior :: [Account] -> T.Text -> IO ()
@@ -40,9 +39,12 @@ behavior accounts ano = runStdoutLoggingT
              . withSqlitePool connectionString openConnections 
                  $ \pool -> liftIO $ do
                        addAccounts pool accounts 
-                       acc       <- query pool ano
-                       modified  <- runActionsForAccount [Credit (200 :: Y.Dense "USD"), Credit (400 :: Y.Dense "USD")] (fromJust acc)
-                       -- modified  <- runActionsForAccount [Debit (2000 :: Y.Dense "USD"), Debit (4000 :: Y.Dense "USD")] (fromJust acc)
+
+                       maybeAcc       <- query pool ano
+                       modified       <- maybe (fail $ "Invalid account " ++ show ano) 
+                                               (runActionsForAccount [Credit (200 :: Y.Dense "USD"), Credit (400 :: Y.Dense "USD")]) 
+                                               maybeAcc
+
                        insertOrUpdate pool modified 
                        query pool (modified ^. accountNo) >>= printResult
 
