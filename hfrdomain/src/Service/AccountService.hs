@@ -147,7 +147,7 @@ queryAccountsByOpenDate :: Pool SqlBackend -> UTCTime -> IO [Account]
 queryAccountsByOpenDate conn dt =
   runAllEffects conn (queryByOpenDate dt)
 
-insertOrUpdate :: Pool SqlBackend -> Account -> IO Account
+insertOrUpdate :: Pool SqlBackend -> Account -> IO ()
 insertOrUpdate conn acc = 
   runAllEffects conn (upsert acc)
 

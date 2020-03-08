@@ -19,7 +19,7 @@ import           Data.Time
 import           Control.Lens
 import           Polysemy          
 import           Polysemy.Input          
-import           Database.Persist (get, insert_, insertMany_, replace, selectList, (==.))
+import           Database.Persist (get, insert_, insertMany_, repsert, selectList, (==.))
 import           Database.Persist.Sqlite (SqlBackend)
 
 import           Model.Account
@@ -34,7 +34,7 @@ data AccountRepository m a where
     StoreMany            :: [Account] -> AccountRepository m ()
     QueryByOpenDate      :: UTCTime -> AccountRepository m [Account]
     AllAccounts          :: AccountRepository m [Account]
-    Upsert               :: Account -> AccountRepository m Account
+    Upsert               :: Account -> AccountRepository m ()
 
 makeSem ''AccountRepository
 
@@ -55,7 +55,4 @@ runAccountRepository = interpret $ \case
         return $ unEntity <$> es
   Upsert acc -> runDB doUpsert
     where
-      doUpsert = do 
-        a <- get (AccountKey $ acc ^. accountNo)
-        _ <- maybe (insert_ acc) (replace (AccountKey $ acc ^. accountNo)) a
-        return acc
+      doUpsert = repsert (AccountKey $ acc ^. accountNo) acc

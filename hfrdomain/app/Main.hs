@@ -16,7 +16,6 @@ import           Control.Lens
 import           Database.Persist.Sqlite (withSqlitePool)
 
 import           Model.Account
-import           Model.Schema
 import           Service.AccountService
 import           Service.Banking
 
@@ -41,10 +40,11 @@ behavior accounts ano = runStdoutLoggingT
              . withSqlitePool connectionString openConnections 
                  $ \pool -> liftIO $ do
                        addAccounts pool accounts 
-                       acc <- query pool ano
-                       let modified = fromJust acc & currentBalance %~ (+ (100 :: Y.Dense "USD"))
-                       updated <- insertOrUpdate pool modified 
-                       query pool (updated ^. accountNo) >>= printResult
+                       acc       <- query pool ano
+                       modified  <- runActionsForAccount [Credit (200 :: Y.Dense "USD"), Credit (400 :: Y.Dense "USD")] (fromJust acc)
+                       -- modified  <- runActionsForAccount [Debit (2000 :: Y.Dense "USD"), Debit (4000 :: Y.Dense "USD")] (fromJust acc)
+                       insertOrUpdate pool modified 
+                       query pool (modified ^. accountNo) >>= printResult
 
   where
     printResult (Just ac)  = print ac
