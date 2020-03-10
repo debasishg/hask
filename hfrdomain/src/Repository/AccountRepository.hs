@@ -9,6 +9,8 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Repository.AccountRepository where 
 
@@ -16,9 +18,12 @@ import qualified Data.Text as T
 
 import           Data.Pool
 import           Data.Time
+import qualified Data.Map  as M
+
 import           Control.Lens
 import           Polysemy          
 import           Polysemy.Input          
+import qualified Polysemy.State as S
 import           Database.Persist (get, insert_, insertMany_, repsert, selectList, (==.))
 import           Database.Persist.Sqlite (SqlBackend)
 
@@ -38,6 +43,7 @@ data AccountRepository m a where
 
 makeSem ''AccountRepository
 
+-- | Interpreter for AccountRepository
 runAccountRepository :: forall r b. Members [Embed IO, Input (Pool SqlBackend)] r => Sem (AccountRepository ': r) b -> Sem r b
 runAccountRepository = interpret $ \case
   QueryAccount ano -> runDB (get (AccountKey ano)) 
@@ -56,3 +62,15 @@ runAccountRepository = interpret $ \case
   Upsert acc -> runDB doUpsert
     where
       doUpsert = repsert (AccountKey $ acc ^. accountNo) acc
+
+-- | Instance of the interpreter that can be used for testing
+type AccountMap = M.Map T.Text Account
+
+runAccountRepositoryInMemory :: forall r a. Member (S.State AccountMap) r => Sem (AccountRepository ': r) a -> Sem r a
+runAccountRepositoryInMemory = interpret $ \case
+  QueryAccount accountID    -> S.gets (M.!? accountID)
+  Store acc                 -> S.modify (M.insert (acc ^. accountNo) acc)
+  StoreMany accs            -> S.modify (M.union (M.fromList ((\acc -> (acc ^. accountNo, acc)) <$> accs)))
+  AllAccounts               -> S.gets M.elems
+  QueryByOpenDate d         -> S.gets (M.elems . M.filter (\a -> a ^. accountOpenDate == d))
+  Upsert acc                -> S.modify (M.insert (acc ^. accountNo) acc)

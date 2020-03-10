@@ -149,6 +149,26 @@ runAccountRepository = interpret $ \case
   ... 
 ```
 
+### Effects for Testing
+
+To run unit tests we may want to run the repository APIs without an actual database engine. In that case we can just supply a different set of effects using the State monad:
+
+```haskell
+-- | Instance of the interpreter that can be used for testing
+type AccountMap = M.Map T.Text Account
+
+runAccountRepositoryInMemory :: forall r a. Member (S.State AccountMap) r => Sem (AccountRepository ': r) a -> Sem r a
+runAccountRepositoryInMemory = interpret $ \case
+  QueryAccount accountID    -> S.gets (M.!? accountID)
+  Store acc                 -> S.modify (M.insert (acc ^. accountNo) acc)
+  StoreMany accs            -> S.modify (M.union (M.fromList ((\acc -> (acc ^. accountNo, acc)) <$> accs)))
+  AllAccounts               -> S.gets M.elems
+  QueryByOpenDate d         -> S.gets (M.elems . M.filter (\a -> a ^. accountOpenDate == d))
+  Upsert acc                -> S.modify (M.insert (acc ^. accountNo) acc)
+```
+
+Of course one other alternative is to use the in-memory version of the database to run unit tests.
+
 ## The Service Layer
 
 Ideally in a DDD setting we would like to think of repository as still a lower level abstraction. We would like to have coarser APIs that use a repository and deliver domain behaviors. All the implementation effects that we talked about in the last section should not surface in the end user API. 
