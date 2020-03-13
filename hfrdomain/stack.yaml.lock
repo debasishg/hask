@@ -55,7 +55,7 @@ packages:
     hackage: compact-0.1.0.1@sha256:a74976cfdb16a76ca006b58f2a952d604e3244b404e0458a1ec1c255d7d7c8eb,1997
 snapshots:
 - completed:
-    size: 496463
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2020/3/1.yaml
-    sha256: 90a96af46b61643b45a4161287ebfb02fb44764aa53f371b700ba54ac0e920c4
-  original: nightly-2020-03-01
+    size: 501929
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2020/3/10.yaml
+    sha256: b85b932144210a13f4628768d3e7f40bf2071ab0acf932671ff1aadac390d566
+  original: nightly-2020-03-10
