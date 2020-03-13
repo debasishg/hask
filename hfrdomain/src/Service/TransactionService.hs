@@ -12,7 +12,6 @@ import           Data.Maybe
 import           Data.Foldable
 import           Data.Aeson (Value(..))
 import           Data.Pool
-import           Data.Int (Int64)
 import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (SqlBackend)
 import           Polysemy          
@@ -44,7 +43,7 @@ runAllEffects conn program =
     & runInputConst conn  
     & runM
 
-addTransaction :: Pool SqlBackend -> Transaction -> IO Int64
+addTransaction :: Pool SqlBackend -> Transaction -> IO ()
 addTransaction conn txn = 
   runAllEffects conn (store txn)
 

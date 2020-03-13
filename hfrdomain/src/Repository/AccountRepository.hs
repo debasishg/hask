@@ -64,13 +64,13 @@ runAccountRepository = interpret $ \case
       doUpsert = repsert (AccountKey $ acc ^. accountNo) acc
 
 -- | Instance of the interpreter that can be used for testing
-type AccountMap = M.Map T.Text Account
+type AccountMap = M.Map AccountKey Account
 
 runAccountRepositoryInMemory :: forall r a. Member (S.State AccountMap) r => Sem (AccountRepository ': r) a -> Sem r a
 runAccountRepositoryInMemory = interpret $ \case
-  QueryAccount accountID    -> S.gets (M.!? accountID)
-  Store acc                 -> S.modify (M.insert (acc ^. accountNo) acc)
-  StoreMany accs            -> S.modify (M.union (M.fromList ((\acc -> (acc ^. accountNo, acc)) <$> accs)))
+  QueryAccount accountID    -> S.gets (M.!? AccountKey accountID)
+  Store acc                 -> S.modify (M.insert (AccountKey (acc ^. accountNo)) acc)
+  StoreMany accs            -> S.modify (M.union (M.fromList ((\acc -> (AccountKey(acc ^. accountNo), acc)) <$> accs)))
   AllAccounts               -> S.gets M.elems
   QueryByOpenDate d         -> S.gets (M.elems . M.filter (\a -> a ^. accountOpenDate == d))
-  Upsert acc                -> S.modify (M.insert (acc ^. accountNo) acc)
+  Upsert acc                -> S.modify (M.insert (AccountKey (acc ^. accountNo)) acc)

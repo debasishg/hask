@@ -58,6 +58,7 @@ dependencies:
 - polysemy-zoo 
 # - sqlite-simple
 - resource-pool
+- random
 
 library:
   source-dirs: src
