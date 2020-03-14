@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Service.Banking where
 
@@ -15,6 +16,7 @@ import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (SqlBackend)
 
 import           Model.Schema
+import           Model.Account (isAccountClosed)
 import           Model.TransactionType
 import qualified Repository.AccountRepository as AR
 import qualified Repository.TransactionRepository as TR
@@ -28,18 +30,35 @@ netValueTransactionsForAccount conn ano = runAllEffects conn doNetValueComputati
     zeroDollars = 0 :: Y.Dense "USD"
     doNetValueComputation = do
 
-      acc  <- AR.queryAccount ano
-      txns <- TR.queryByAccount ano
+      -- get the account from database
+      maybeAcc  <- AR.queryAccount ano
 
-      let amount = foldl' (+) zeroDollars (signValAmount <$> txns)
-          updated = fromJust acc & currentBalance %~ (+ amount)
+      -- fail if the account does not exist
+      -- if exists, check if the account is already closed
+      let maybeCloseDate = maybe (fail $ "Invalid account " ++ show ano) 
+                                 isAccountClosed 
+                                 maybeAcc
 
-      AR.store updated
-        where 
-          signValAmount txn = 
-            if txn ^. transactionType == Cr
-              then txn ^. transactionAmount
-              else (-1) * (txn ^. transactionAmount)
+      -- fail if the account is already closed
+      -- otherwise compute net value of all transactions for the account and update
+      maybe (computeNetValueAndUpdate $ fromJust maybeAcc) 
+            accountClosedErr 
+            maybeCloseDate
+
+        where
+          accountClosedErr closeDate = error ("Account number " ++ show ano ++ " is closed on " ++ show closeDate)
+          computeNetValueAndUpdate acc = do
+            txns <- TR.queryByAccount ano
+
+            let amount = foldl' (+) zeroDollars (signValAmount <$> txns)
+                updated = acc & currentBalance %~ (+ amount)
+
+            AR.store updated
+              where 
+                signValAmount txn = 
+                  if txn ^. transactionType == Cr
+                    then txn ^. transactionAmount
+                    else (-1) * (txn ^. transactionAmount)
 
 runAllEffects :: 
      Pool SqlBackend 
