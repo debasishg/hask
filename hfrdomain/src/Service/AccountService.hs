@@ -5,6 +5,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
 
 -- | Exposes coarser level domain services in terms of actions that can be done on accounts.
 -- The service layer publishes an ADT named `AccountAction` that models each action that can be
@@ -27,6 +28,7 @@ module Service.AccountService
     , query
     , queryAccountsByOpenDate
     , insertOrUpdate
+    , transfer
     ) where
 
 import qualified Data.Text as T
@@ -36,6 +38,7 @@ import           Data.Pool
 import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
 import           Data.Time
+import           Data.Maybe (fromMaybe)
 import           Control.Arrow
 import           Control.Lens
 import           Control.Monad.Validate
@@ -150,6 +153,25 @@ queryAccountsByOpenDate conn dt =
 insertOrUpdate :: Pool SqlBackend -> Account -> IO ()
 insertOrUpdate conn acc = 
   runAllEffects conn (upsert acc)
+
+-- | Transfer amount from one account to another
+transfer :: Pool SqlBackend -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
+transfer conn fromAccountNo toAccountNo amount =
+  runAllEffects conn doTransfer
+    where
+      doTransfer = do
+        maybeFromAccount <- queryAccount fromAccountNo
+        let fromAccount = fromMaybe (error $ "Invalid from account " ++ show fromAccountNo) maybeFromAccount
+
+        maybeToAccount <- queryAccount toAccountNo
+        let toAccount = fromMaybe (error $ "Invalid to account " ++ show toAccountNo) maybeToAccount
+
+        xfer fromAccount toAccount
+          where 
+            xfer fa ta = do
+              let updatedFrom = fa & currentBalance %~ subtract amount
+                  updatedTo   = ta & currentBalance %~ (+ amount)
+              upsertMany [updatedFrom, updatedTo]
 
 -- | Gives a lens for getting / setting account balance in a specific currency
 -- given the appropriate exchange rate

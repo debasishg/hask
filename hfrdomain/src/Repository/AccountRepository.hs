@@ -24,7 +24,7 @@ import           Control.Lens
 import           Polysemy          
 import           Polysemy.Input          
 import qualified Polysemy.State as S
-import           Database.Persist (get, insert_, insertMany_, repsert, selectList, (==.))
+import           Database.Persist (get, insert_, insertMany_, repsert, repsertMany, selectList, (==.))
 import           Database.Persist.Sqlite (SqlBackend)
 
 import           Model.Account
@@ -40,6 +40,7 @@ data AccountRepository m a where
     QueryByOpenDate      :: UTCTime -> AccountRepository m [Account]
     AllAccounts          :: AccountRepository m [Account]
     Upsert               :: Account -> AccountRepository m ()
+    UpsertMany           :: [Account] -> AccountRepository m ()
 
 makeSem ''AccountRepository
 
@@ -62,6 +63,10 @@ runAccountRepository = interpret $ \case
   Upsert acc -> runDB doUpsert
     where
       doUpsert = repsert (AccountKey $ acc ^. accountNo) acc
+  UpsertMany accs -> runDB doUpsert
+    where
+      doUpsert = repsertMany $ (\acc -> (AccountKey $ acc ^. accountNo, acc)) <$> accs
+
 
 -- | Instance of the interpreter that can be used for testing
 type AccountMap = M.Map AccountKey Account
@@ -74,3 +79,4 @@ runAccountRepositoryInMemory = interpret $ \case
   AllAccounts               -> S.gets M.elems
   QueryByOpenDate d         -> S.gets (M.elems . M.filter (\a -> a ^. accountOpenDate == d))
   Upsert acc                -> S.modify (M.insert (AccountKey (acc ^. accountNo)) acc)
+  UpsertMany accs           -> S.modify (M.union (M.fromList ((\acc -> (AccountKey(acc ^. accountNo), acc)) <$> accs)))
