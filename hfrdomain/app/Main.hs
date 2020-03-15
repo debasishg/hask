@@ -27,7 +27,8 @@ openConnections = 3
 main :: IO ()
 main = runMigrateActions >> 
            openNewAccounts >>= 
-               (\accs -> transferBehavior accs "0123456789" "1234567890" (400 :: Y.Dense "USD"))
+               transferBehavior "0123456789" "1234567890" (400 :: Y.Dense "USD")
+               -- transferBehavior accs "01238789" "1234890" (400 :: Y.Dense "USD")
 
 -- main = runMigrateActions >> 
            -- openNewAccounts >>= 
@@ -68,8 +69,8 @@ execute accountno = runStdoutLoggingT
 --    account to the second
 -- 3. store the updated accounts back to the database
 -- 4. query that updated accounts and print the account details
-transferBehavior :: [Account] -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
-transferBehavior accounts fromAccount toAccount amount = runStdoutLoggingT
+transferBehavior :: T.Text -> T.Text -> Y.Dense "USD" -> [Account] -> IO ()
+transferBehavior fromAccount toAccount amount accounts= runStdoutLoggingT
                      . withSqlitePool connectionString openConnections
                          $ \pool -> liftIO $ do
                                addAccounts pool accounts

@@ -38,7 +38,6 @@ import           Data.Pool
 import           Data.Text hiding (map, foldr)
 import           Data.Aeson.QQ (aesonQQ)
 import           Data.Time
-import           Data.Maybe (fromMaybe)
 import           Control.Arrow
 import           Control.Lens
 import           Control.Monad.Validate
@@ -156,22 +155,18 @@ insertOrUpdate conn acc =
 
 -- | Transfer amount from one account to another
 transfer :: Pool SqlBackend -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
-transfer conn fromAccountNo toAccountNo amount =
+transfer conn fromAccountNo toAccountNo amount = 
   runAllEffects conn doTransfer
-    where
-      doTransfer = do
-        maybeFromAccount <- queryAccount fromAccountNo
-        let fromAccount = fromMaybe (error $ "Invalid from account " ++ show fromAccountNo) maybeFromAccount
-
-        maybeToAccount <- queryAccount toAccountNo
-        let toAccount = fromMaybe (error $ "Invalid to account " ++ show toAccountNo) maybeToAccount
-
-        xfer fromAccount toAccount
-          where 
-            xfer fa ta = do
-              let updatedFrom = fa & currentBalance %~ subtract amount
-                  updatedTo   = ta & currentBalance %~ (+ amount)
-              upsertMany [updatedFrom, updatedTo]
+    where 
+      doTransfer = 
+        (updateBalances <$> 
+              queryAccount fromAccountNo 
+          <*> queryAccount toAccountNo) >>= upsertMany
+          where
+            updateBalances (Just fa) (Just ta)  = [fa & currentBalance %~ subtract amount, ta & currentBalance %~ (+ amount)]
+            updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
+            updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
+            updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"
 
 -- | Gives a lens for getting / setting account balance in a specific currency
 -- given the appropriate exchange rate
