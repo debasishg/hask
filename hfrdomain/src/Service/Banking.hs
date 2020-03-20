@@ -12,26 +12,30 @@ import           Data.Pool
 import           Data.Maybe (fromJust)
 import           Polysemy
 import           Polysemy.Input
+import           Control.Applicative
+import           Control.Monad.Trans.Maybe -- (runMaybeT)
 import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (SqlBackend)
+import           Database.Redis (Connection)
 
 import           Model.Schema
 import           Model.Account (isAccountClosed)
 import           Model.TransactionType
 import qualified Repository.AccountRepository as AR
 import qualified Repository.TransactionRepository as TR
+import qualified Repository.AccountCache as AC
 
 -- | a domain service that accesses multiple repositories to fetch account and
 -- | transactions, computes the net value of all transactions fetched and updates
 -- | the balance in the account repository
-netValueTransactionsForAccount :: Pool SqlBackend -> Text -> IO ()
-netValueTransactionsForAccount conn ano = runAllEffects conn doNetValueComputation
+netValueTransactionsForAccount :: Pool SqlBackend -> Connection -> Text -> IO ()
+netValueTransactionsForAccount conn rconn ano = runAllEffects conn rconn doNetValueComputation
   where 
     zeroDollars = 0 :: Y.Dense "USD"
     doNetValueComputation = do
 
       -- get the account from database
-      maybeAcc  <- AR.queryAccount ano
+      maybeAcc  <- runMaybeT $ MaybeT (AC.fetchCachedAccount ano) <|> MaybeT (AR.queryAccount ano)
 
       -- fail if the account does not exist
       -- if exists, check if the account is already closed
@@ -54,6 +58,7 @@ netValueTransactionsForAccount conn ano = runAllEffects conn doNetValueComputati
                 updated = acc & currentBalance %~ (+ amount)
 
             AR.store updated
+            AC.cacheAccount updated
               where 
                 signValAmount txn = 
                   if txn ^. transactionType == Cr
@@ -62,12 +67,15 @@ netValueTransactionsForAccount conn ano = runAllEffects conn doNetValueComputati
 
 runAllEffects :: 
      Pool SqlBackend 
-  -> Sem '[AR.AccountRepository, TR.TransactionRepository, Input (Pool SqlBackend), Embed IO] a 
+  -> Connection
+  -> Sem '[AR.AccountRepository, TR.TransactionRepository, AC.AccountCache, Input (Pool SqlBackend), Input Connection, Embed IO] a 
   -> IO a
 
-runAllEffects conn program =
+runAllEffects conn rconn program =
   program                    
     & AR.runAccountRepository
     & TR.runTransactionRepository
+    & AC.runAccountCache
     & runInputConst conn  
+    & runInputConst rconn  
     & runM

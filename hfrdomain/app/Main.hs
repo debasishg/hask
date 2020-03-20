@@ -13,6 +13,7 @@ import           Control.Monad.Logger (runStdoutLoggingT)
 import           Control.Monad.IO.Class
 import           Control.Lens
 import           Database.Persist.Sqlite (withSqlitePool)
+import           Database.Redis (checkedConnect, defaultConnectInfo)
 
 import           Model.Account
 import           Service.AccountService
@@ -60,7 +61,8 @@ behavior accounts ano = runStdoutLoggingT
 execute :: T.Text -> IO ()
 execute accountno = runStdoutLoggingT
   . withSqlitePool connectionString openConnections
-    $ \pool -> liftIO $ netValueTransactionsForAccount pool accountno
+    $ \pool -> liftIO $ checkedConnect defaultConnectInfo 
+        >>= \rconn -> liftIO $ netValueTransactionsForAccount pool rconn accountno
 
 
 -- | Sample use case

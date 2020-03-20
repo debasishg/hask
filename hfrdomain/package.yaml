@@ -59,6 +59,7 @@ dependencies:
 # - sqlite-simple
 - resource-pool
 - random
+- hedis
 
 library:
   source-dirs: src

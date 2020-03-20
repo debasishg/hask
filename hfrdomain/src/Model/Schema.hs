@@ -46,7 +46,7 @@ Account json
     currentBalance              MoneyUSD
     rateOfInterest              Double 
     Primary accountNo
-    deriving Show 
+    deriving Show Read 
 
 Transaction json
     transactionType             TransactionType sqltype=varchar
@@ -54,7 +54,7 @@ Transaction json
     transactionAmount           MoneyUSD
     transactionAccountNo        Text
     Foreign                     Account fkAccount transactionAccountNo
-    deriving Show 
+    deriving Show Read 
 |]
 
 type AccountKey = Key Account
