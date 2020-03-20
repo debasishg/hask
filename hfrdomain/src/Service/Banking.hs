@@ -13,7 +13,7 @@ import           Data.Maybe (fromJust)
 import           Polysemy
 import           Polysemy.Input
 import           Control.Applicative
-import           Control.Monad.Trans.Maybe -- (runMaybeT)
+import           Control.Monad.Trans.Maybe 
 import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (SqlBackend)
 import           Database.Redis (Connection)
@@ -34,8 +34,10 @@ netValueTransactionsForAccount conn rconn ano = runAllEffects conn rconn doNetVa
     zeroDollars = 0 :: Y.Dense "USD"
     doNetValueComputation = do
 
-      -- get the account from database
-      maybeAcc  <- runMaybeT $ MaybeT (AC.fetchCachedAccount ano) <|> MaybeT (AR.queryAccount ano)
+      -- try to get the account from cache, if not found, fetch from database
+      maybeAcc  <- runMaybeT $ 
+                         MaybeT (AC.fetchCachedAccount ano) 
+                     <|> MaybeT (AR.queryAccount ano)
 
       -- fail if the account does not exist
       -- if exists, check if the account is already closed
