@@ -2,6 +2,43 @@
 
 In this project we explore the techniques of using domain driven design (DDD) using Haskell and pure functional programming. 
 
+## Purpose
+
+The main purpose of this project is _not_ to build a robust application using the principles of DDD. The idea is to explore the various capabilities of Haskell that apply in designing an application based on the principles of domain driven design. We discuss some of the principles of DDD that mesh well with Haskell as an implementation language.
+
+### Communication and use of the ubiquitous language
+
+Regarding the use of language, Eric Evans writes in the famous blue book:
+
+> This is a crucial cord that weaves the model into development activity and binds it in the code.
+
+Weaving the ubiquitous language into the code is best performed when you have an expressive language of implementation. If the implementation language is not so expressive you can choose to develop a DSL [1] - either an external one or an embedded one. With Haskell you don't need an additional linguistic layer for expressivity. Haskell is an expressive language - the only thing you need to take care of is to program at the proper level of abstraction.
+
+### Clean separation of the life cycle of a domain object
+
+Eric Evans notes aggregates, factories, repositories etc. as forming the lifecycle of a domain object. Haskell, as a language offers features to make these explicit abstractions. We can use
+
+* algebraic data types (along with pattern matching) for modeling aggregates
+* smart constructors can be used as factories to create _valid_ domain objects
+* inductive data types coupled with effects can be used to model repositories and services
+
+### Supple Design
+
+This one is straight out of the blue book:
+
+* **Intention Revealing Interfaces** - This means the ability to _name classes and operations to describe their effect and purpose, without reference to the means by which they do what they promise_. Haskell is a great platform for this, where we have a complete separation of the _how_ of a function from the _what_ - not only by name but also by the implementation.
+
+* **Side-effect free Functions** - Haskell is pure (well, almost) and allows to model side-effects through algebraic effects. You can reason about your functions equationally.
+
+* **Assertions** - Eric Evans says _Assertions make side effects explicit and easier to deal with_. With Haskell you have the benefit of a static type system to assert your invariants. And you can model side-effects algebraically - hence you don't need any additional external capability of assertions. They are just part of the language.
+
+* **Conceptual Contours** - This is all about modularity. Haskell offers several ways to handle modularity of your application. Though not the strongest part of haskell, but you have constructs like typeclasses, modules etc. which can help you in modularizing your domain concepts.
+
+* **Standalone Classes** - This is a technique that encourages building self-contained abstractions. Firstly Haskell encourages pure functions, which does not depend on external factors and only depends on the input that the functions accept. If the function / abstraction interacts with external systems, you use the type system to annotate them explicitly - so the contract is published and explicit. The type system enforces that you cannot fool around with the contracts of your domain behaviors.
+
+* **Closure of Operations** - This is all about purity and compositionality. And Haskell shines with both of these. Just compose functions to define _what_ you want to do. Once you have built the abstraction of the complete domain behavior, you can run an interpreter that executes _how_ the behavior will be implemented. Here's an example of a domain service that runs a bunch of debits and credits on a bank account:
+
+
 ## The Main Artifacts
 
 As is common with any DDD project, we have the following main artifacts:
