@@ -204,8 +204,8 @@ transferCached conn rconn fromAccountNo toAccountNo amount =
   runAllEffectsWithCache conn rconn doTransfer
     where 
       doTransfer = updateAccountBalances >>= \accs -> do
-        cacheAccounts accs 
         upsertMany accs
+        cacheAccounts accs 
           where
             updateAccountBalances = 
               updateBalances <$> 

@@ -233,6 +233,90 @@ runAllEffects conn program =
 
 Almost similar to what we had in the last section - just added another repository to the stack - polysemy takes care of the rest.
 
+## An Optional Caching Layer
+
+With polysemy implementing a caching layer as a separate effect is a breeze. This project has a sample implementation that demonstrates how to implement a domain service that uses the caching layer.
+
+But first the implementation of the caching layer - we do it for `Account`:
+
+**Step 1:** Define the contract of an `AccountCache`
+
+```haskell
+data AccountCache m a where
+    CacheAccount         :: Account -> AccountCache m ()
+    CacheAccounts        :: [Account] -> AccountCache m ()
+    FetchCachedAccount   :: T.Text -> AccountCache m (Maybe Account)
+    DeleteCachedAccount  :: T.Text -> AccountCache m ()
+```
+
+**Step 2:** Design a generic interpreter for running a cache layer under polysemy. We use `Redis` as the cache layer
+
+```haskell
+runCache :: forall b r. Members [Embed IO, Input Connection] r => Redis b -> Sem r b
+runCache action = embed . flip runRedis action =<< input 
+```
+
+**Step 3:** Implement an interpreter for `AccountCache`
+
+```haskell
+runAccountCache :: forall r b. Members [Embed IO, Input Connection] r => Sem (AccountCache ': r) b -> Sem r b
+runAccountCache = interpret $ \case
+  CacheAccount acc -> runCache (void $ setex (pack . show $ acc ^. accountNo) 3600 (pack . show $ acc))
+  CacheAccounts accs -> ...
+  ...
+```
+
+### Implementing a cache enabled Domain Service
+
+Let's implement a domain service that transfers funds across 2 accounts. We will use the `AccountRepository` for the database contracts and `AccountCache` for the cache layer.
+
+```haskell
+-- | Transfer amount from one account to another
+-- | This is a cached service where we try to fetch accounts from the cache first and if that
+-- | fails we fall back to the database. Similarly after update to database we update the cache
+-- | with the updated accounts
+transferCached :: Pool SqlBackend -> Connection -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
+transferCached conn rconn fromAccountNo toAccountNo amount = 
+  runAllEffectsWithCache conn rconn doTransfer
+    where 
+      doTransfer = updateAccountBalances >>= \accs -> do
+        upsertMany accs
+        cacheAccounts accs 
+          where
+            updateAccountBalances = 
+              updateBalances <$> 
+                    runMaybeT 
+                          (MaybeT (fetchCachedAccount fromAccountNo) 
+                      <|>  MaybeT (queryAccount fromAccountNo))
+                <*> runMaybeT 
+                          (MaybeT (fetchCachedAccount toAccountNo) 
+                      <|>  MaybeT (queryAccount toAccountNo))
+                where
+                  updateBalances (Just fa) (Just ta)  = [fa & currentBalance %~ subtract amount, ta & currentBalance %~ (+ amount)]
+                  updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
+                  updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
+                  updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"
+```
+
+Here are a few points regarding the above implementation:
+
+* The query of the accounts follow a two staged fetch strategy - first we check the cache and then fall back to database if the account is not present in the cache
+* Note the use of the `Alternative` typeclass combinator `<|>` to implement the 2 stage fetch
+* `upsertMany` updates the database and `cacheAccounts` updates the cache
+* The whole service runs within `runAllEffectsWithCache` which publishes the effects that we need to polysemy. Here's how we define it:
+
+```haskell
+
+runAllEffectsWithCache :: Pool SqlBackend -> Connection -> Sem '[AccountRepository, AccountCache, Input (Pool SqlBackend), Input Connection, Embed IO] a -> IO a
+runAllEffectsWithCache conn rconn program =
+  program                    
+    & runAccountRepository
+    & runAccountCache
+    & runInputConst conn  
+    & runInputConst rconn  
+    & runM
+```
+
 ## Integrating them all
 
 Integrating the domain model, repository and services together is quite straightforward once you have the individual components aptly typed. Here's how to execute the above service API using a connection pool from a sqlite database engine:

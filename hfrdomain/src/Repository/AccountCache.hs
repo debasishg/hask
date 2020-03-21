@@ -14,7 +14,7 @@ import           Control.Monad (void)
 import           Data.ByteString.Char8 (pack, unpack)
 import           Polysemy          
 import           Polysemy.Input
-import           Database.Redis (Redis, get, setex, mset, del, runRedis, Connection)
+import           Database.Redis (Redis, get, setex, del, runRedis, Connection)
 import           Control.Lens
 
 import           Model.Account
@@ -33,7 +33,11 @@ runCache action = embed . flip runRedis action =<< input
 runAccountCache :: forall r b. Members [Embed IO, Input Connection] r => Sem (AccountCache ': r) b -> Sem r b
 runAccountCache = interpret $ \case
   CacheAccount acc -> runCache (void $ setex (pack . show $ acc ^. accountNo) 3600 (pack . show $ acc))
-  CacheAccounts accs -> runCache (void $ mset $ fmap (\acc -> ((pack . show $ acc ^. accountNo), (pack . show $ acc))) accs)
+  CacheAccounts accs -> runCache (doCacheMany accs)
+    where 
+      doCacheMany = mapM_ redisSet
+        where
+          redisSet acc = void $ setex (pack . show $ acc ^. accountNo) 3600 (pack . show $ acc)
 
   FetchCachedAccount ano -> runCache doFetch
     where
