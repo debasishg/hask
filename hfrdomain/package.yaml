@@ -60,6 +60,7 @@ dependencies:
 - resource-pool
 - random
 - hedis
+- validation-selective
 
 library:
   source-dirs: src
