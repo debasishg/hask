@@ -41,15 +41,14 @@ import           Data.Aeson.QQ (aesonQQ)
 import           Data.Time
 import           Control.Arrow
 import           Control.Lens
-import           Control.Monad.Validate
-import           Control.Monad.Reader
-import           Control.Monad.Trans.Either
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe 
 import           Polysemy          
 import           Polysemy.Input          
 import           Database.Persist.Sqlite (SqlBackend, runMigration)
 import           Database.Redis (Connection)
+import           Data.List.NonEmpty hiding (map)
+import           Validation (Validation (..), validationToEither)
 
 import           Model.Account
 import           Model.Schema
@@ -67,61 +66,43 @@ data AccountAction = Debit (Y.Dense "USD")
                    deriving (Show, Read)
 
 -- | a combinator for composing various actions on an Account
-actionCombinator :: (MonadReader Env m, MonadValidate [Error] m) => Account -> [AccountAction] -> m Account
+actionCombinator :: Account -> [AccountAction] -> Either (NonEmpty ErrorInfo) Account
 actionCombinator account txns =
   let fns = map toFunction txns
-  -- in foldBinds (Prelude.head fns a) (Prelude.tail fns)
   in runKleisli (flattenAndCompose $ map Kleisli fns) account 
   where 
-    toFunction (Debit amt) = debit amt 
-    toFunction (Credit amt) = credit amt 
-    toFunction (Close closeDate) = close closeDate 
+    toFunction (Debit amt) = validationToEither . debit amt 
+    toFunction (Credit amt) = validationToEither . credit amt 
+    toFunction (Close closeDate) = validationToEither  . close closeDate
 
 -- | a combinator that runs actions for a specific account number
-runActionsForAccountNo :: Pool SqlBackend -> [AccountAction] -> Text -> IO Account
+runActionsForAccountNo :: Pool SqlBackend -> [AccountAction] -> Text -> IO (Either (NonEmpty ErrorInfo) Account)
 runActionsForAccountNo conn actions accNo = do
   maybeAccount <- query conn accNo 
-  maybe (fail "invalid account") (runActionsForAccount actions) maybeAccount
+  return $ maybe (error "invalid account") (runActionsForAccount actions) maybeAccount
 
 -- | a combinator that runs actions for a specific account 
-runActionsForAccount :: [AccountAction] -> Account -> IO Account
-runActionsForAccount actions account = do
-  a <- (runEitherT . makeActions actions) account 
-  either (fail . show) return a
-  where
-    makeActions :: [AccountAction] -> Account -> EitherT [Error] IO Account
-    makeActions txns acc = 
-      let env = Env []
-          aggr = do 
-            rdr <- runValidateT <$> composeActions acc txns
-            return $ runReader rdr env
-
-      in EitherT aggr
-      where
-        composeActions :: forall m. (MonadReader Env m, MonadValidate [Error] m) => Account -> [AccountAction] -> IO (m Account)
-        composeActions a tns = 
-          return $ actionCombinator a tns
+runActionsForAccount :: [AccountAction] -> Account -> Either (NonEmpty ErrorInfo) Account
+runActionsForAccount = flip actionCombinator 
 
 -- | a combinator that runs actions for multiple accounts
-runActionsForAccounts :: [AccountAction] -> [Account] -> IO [Account]
-runActionsForAccounts actions = 
-  mapM (runActionsForAccount actions) 
+runActionsForAccounts :: [AccountAction] -> [Account] -> Either (NonEmpty ErrorInfo) [Account]
+runActionsForAccounts actions = mapM (runActionsForAccount actions) 
 
-makeAccountAggregateFromContext :: Text -> Text -> Text -> EitherT [Error] IO Account
+makeAccountAggregateFromContext :: Text -> Text -> Text -> IO (Validation (NonEmpty ErrorInfo) Account)
 makeAccountAggregateFromContext accNo accType accountName = 
-  let env = Env []
-      testcase input = do
-        accRdr <- runValidateT <$> makeAccount input
-        return $ runReader accRdr env
+  accountFromJson [aesonQQ| { "account_no": #{accNo}, "account_type": #{accType}, "account_name": #{accountName}, "account_open_date": "\"1984-10-15T00:00:00Z\"", "account_close_date": "", "account_current_balance": "[\"USD\",3200,1]", "rate_of_interest": 2.5 } |]
+    where
+      accountFromJson inputValue = do
+        utcCurrent <- getCurrentTime
+        return $ makeAccount utcCurrent inputValue
 
-  in EitherT $ testcase [aesonQQ| { "account_no": #{accNo}, "account_type": #{accType}, "account_name": #{accountName}, "account_open_date": "\"1984-10-15T00:00:00Z\"", "account_close_date": "", "account_current_balance": "[\"USD\",3200,1]", "rate_of_interest": 2.5 } |]
-
-openNewAccounts :: IO [Account]
+openNewAccounts :: IO (Validation (NonEmpty ErrorInfo) [Account])
 openNewAccounts = do 
-  aggr1 <- runEitherT (makeAccountAggregateFromContext "0123456789" "\"Sv\"" "debasish")
-  aggr2 <- runEitherT (makeAccountAggregateFromContext "1234567890" "\"Sv\"" "paramita")
-  aggr3 <- runEitherT (makeAccountAggregateFromContext "2345678901" "\"Sv\"" "aarush")
-  either (fail . show) return $ sequence [aggr1, aggr2, aggr3]
+  aggr1 <- makeAccountAggregateFromContext "0123456789" "\"Sv\"" "debasish"
+  aggr2 <- makeAccountAggregateFromContext "1234567890" "\"Sv\"" "paramita"
+  aggr3 <- makeAccountAggregateFromContext "2345678901" "\"Sv\"" "aarush"
+  return $ sequenceA [aggr1, aggr2, aggr3]
 
 runMigrateActions :: IO ()
 runMigrateActions =
@@ -184,7 +165,6 @@ balanceInCurrency usd2target = lens (getter usd2target) (setter $ Y.exchangeRate
 
     setter :: Y.ExchangeRate target "USD" -> Account -> Y.Dense target -> Account
     setter exchangeRate account amount = account & currentBalance %~ (+ Y.exchange exchangeRate amount)
-
 
 runAllEffectsWithCache :: Pool SqlBackend -> Connection -> Sem '[AccountRepository, AccountCache, Input (Pool SqlBackend), Input Connection, Embed IO] a -> IO a
 runAllEffectsWithCache conn rconn program =

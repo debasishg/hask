@@ -15,15 +15,13 @@
 module Repository.AccountRepository where 
 
 import qualified Data.Text as T
-
+import qualified Data.Map  as M
+import qualified Polysemy.State as S
 import           Data.Pool
 import           Data.Time
-import qualified Data.Map  as M
-
 import           Control.Lens
 import           Polysemy          
 import           Polysemy.Input          
-import qualified Polysemy.State as S
 import           Database.Persist (get, insert_, insertMany_, repsert, repsertMany, selectList, (==.))
 import           Database.Persist.Sqlite (SqlBackend)
 
