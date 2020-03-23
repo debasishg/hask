@@ -3,19 +3,18 @@
 module Service.TransactionService where
 
 import qualified Money as Y
-import           Control.Monad.Validate
-import           Control.Monad.Reader
-import           Control.Monad.Trans.Either
 import           Data.Text hiding (foldl')
 import           Data.Time
 import           Data.Maybe
 import           Data.Foldable
 import           Data.Aeson (Value(..))
 import           Data.Pool
+import           Data.List.NonEmpty
 import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (SqlBackend)
 import           Polysemy          
 import           Polysemy.Input          
+import           Validation (Validation (..))
 
 import           Model.Transaction
 import           Model.TransactionType
@@ -27,14 +26,10 @@ zeroDollars :: Y.Dense "USD"
 zeroDollars = 0 :: Y.Dense "USD"
 
 -- | Make a Transaction from a json value
-makeTransactionAggregateFromContext :: Value -> EitherT [Error] IO Transaction
-makeTransactionAggregateFromContext jsonValue = 
-  let env = Env []
-      testcase input = do
-        txnRdr <- runValidateT <$> makeTransaction input
-        return $ runReader txnRdr env
-
-  in EitherT $ testcase jsonValue
+makeTransactionAggregateFromContext :: Value -> IO (Validation.Validation (NonEmpty ErrorInfo) Transaction)
+makeTransactionAggregateFromContext jsonValue = do
+  utcCurrent <- getCurrentTime
+  return $ makeTransaction utcCurrent jsonValue
 
 runAllEffects :: Pool SqlBackend -> Sem '[TransactionRepository, Input (Pool SqlBackend), Embed IO] a -> IO a
 runAllEffects conn program =

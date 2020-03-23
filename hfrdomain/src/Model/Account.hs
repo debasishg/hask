@@ -25,19 +25,17 @@ module Model.Account
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
-import qualified Data.HashMap.Strict as M
-import           Data.Aeson (Value(..), decode, Object)
+import           Data.Aeson (Value(..), decode)
 import           Validation (Validation (..), failure, validationToEither, eitherToValidation)
 import           Data.List.NonEmpty
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Time
-import           GHC.TypeLits (KnownSymbol)
-import           Data.Scientific (Scientific, toBoundedRealFloat)
 import           Data.Maybe (isNothing, fromJust)
 import           Control.Lens hiding (element)
 
 import           Model.Schema
 import           Model.AccountType
+import           Model.ValidateAeson
 import           Errors
 
 makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
@@ -77,10 +75,6 @@ validateAccountNumber ano =
   if T.length ano /= 10
     then failure $ InvalidAccountNumber ano
     else Success ano
-
-asString :: Value -> Validation (NonEmpty ErrorInfo) T.Text
-asString = \case { String s -> Success s;
-                   v        -> failure $ JSONBadValue "string" v }
 
 parseAccountType :: Value -> Validation (NonEmpty ErrorInfo) AccountType
 parseAccountType = asAccountType
@@ -125,13 +119,6 @@ validateAccountCloseDate v = case validationToEither $ asDate v of
   Left  e  -> eitherToValidation (Left e)
   Right dt -> Success dt
 
-asDate :: Value -> Validation (NonEmpty ErrorInfo) UTCTime
-asDate = \case { 
-    String s -> (case (decode . L.fromStrict . encodeUtf8) s :: Maybe UTCTime of
-                    Nothing -> failure $ InvalidDateValueInJSON s
-                    Just d -> Success d);
-    v        -> failure $ JSONBadValue "date" v }
-      
 parseCurrentBalance :: Value -> Validation (NonEmpty ErrorInfo)  (Y.Dense "USD")
 parseCurrentBalance v = case validationToEither $ asMoney v of
   Right m -> validateCurrentBalance m
@@ -143,27 +130,10 @@ validateCurrentBalance balance =
   then Success balance
   else failure $ AccountBalanceLessThanMinimumBalance (T.pack (show balance))
       
-asMoney :: (KnownSymbol c) => Value -> Validation (NonEmpty ErrorInfo) (Y.Dense c)
-asMoney = \case { 
-    String s -> (case (decode . L.fromStrict . encodeUtf8) s :: forall c1. (KnownSymbol c1) => Maybe (Y.Dense c1) of
-                    Nothing -> failure $ InvalidMoneyValueInJSON s
-                    Just x  -> Success x);
-    v        -> failure $ JSONBadValue "money" v }
-
 validateRateOfInterest :: Account -> Validation (NonEmpty ErrorInfo) Account
 validateRateOfInterest acc = case acc ^. accountType of 
   Ch -> if acc ^. rateOfInterest == 0.0 then Success acc else failure RateNotApplicableForCheckingAccount
   Sv -> Success acc
-
-asDouble :: Value -> Validation (NonEmpty ErrorInfo) Double
-asDouble v = case validationToEither $ asNumber v of
-  Left  e -> eitherToValidation (Left e)
-  Right s -> case toBoundedRealFloat s of 
-               Left  _i -> failure $ JSONBadValue "double" v
-               Right  d -> Success d
-
-asNumber :: Value -> Validation (NonEmpty ErrorInfo) Scientific
-asNumber = \case { Number n -> Success n; v -> failure $ JSONBadValue "number" v }
 
 -- | Check if an account is not closed
 isAccountActive :: Account -> Bool 
@@ -233,9 +203,3 @@ feeFor acc balance = case acc ^. accountType of
   Sv -> if balance <= 1000
           then 0 :: Y.Dense "USD"
           else fromJust $ Y.dense $ toRational balance * (-0.01)
-
-withObject :: forall a. T.Text -> Value -> (Object -> Validation (NonEmpty ErrorInfo) a) -> Validation (NonEmpty ErrorInfo) a
-withObject name v f = case v of { Object o -> f o; _ -> failure $ JSONBadValue name v }
-
-withKey :: forall a. Object -> T.Text -> (Value -> Validation (NonEmpty ErrorInfo) a) -> Validation (NonEmpty ErrorInfo) a
-withKey o k f = maybe (failure $ JSONMissingKey k) f $ M.lookup k o
