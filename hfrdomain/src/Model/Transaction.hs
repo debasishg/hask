@@ -22,7 +22,7 @@ import qualified Money as Y
 import           Data.Time
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Aeson (Value(..), decode)
-import           Validation (Validation (..), failure, validationToEither, eitherToValidation)
+import           Validation (Validation (..), failure, failureIf, validationToEither, eitherToValidation)
 import           Data.List.NonEmpty
 
 import           Model.ValidateAeson
@@ -51,9 +51,7 @@ asTransactionType = \case { String s -> (case (decode . L.fromStrict . encodeUtf
 
 parseTransactionAccountNo :: Value -> Validation (NonEmpty ErrorInfo) T.Text
 parseTransactionAccountNo v = case validationToEither $ asString v of
-  Right str -> if T.length str /= 10
-      then failure $ InvalidAccountNumber str
-      else Success str
+  Right str -> str <$ failureIf (T.length str /= 10) (InvalidAccountNumber str)
   Left e    -> eitherToValidation (Left e)
 
 parseTransactionDate :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) UTCTime
@@ -62,10 +60,7 @@ parseTransactionDate curr v = case validationToEither $ asDate v of
   Left  e  -> eitherToValidation (Left e)
       
 validateTransactionDate :: UTCTime -> UTCTime -> Validation (NonEmpty ErrorInfo) UTCTime
-validateTransactionDate current d = 
-  if current >= d 
-  then Success d
-  else failure $ InvalidTransactionDate (T.pack $ "Transaction date " ++ show d ++ " " ++ show current ++ " cannot be in future")
+validateTransactionDate current d = d <$ failureIf (current < d) (InvalidTransactionDate (T.pack $ "Transaction date " ++ show d ++ " " ++ show current ++ " cannot be in future"))
       
 parseTransactionAmount :: Value -> Validation (NonEmpty ErrorInfo) (Y.Dense "USD")
 parseTransactionAmount v = case validationToEither $ asMoney v of
@@ -73,7 +68,4 @@ parseTransactionAmount v = case validationToEither $ asMoney v of
   Left  e   -> eitherToValidation (Left e)
       
 validateTransactionAmount :: Y.Dense "USD" -> Validation (NonEmpty ErrorInfo) (Y.Dense "USD")
-validateTransactionAmount amt = 
-  if amt >= (0 :: Y.Dense "USD")
-  then Success amt
-  else failure $ TransactionAmountNegative (T.pack (show amt))
+validateTransactionAmount amt = amt <$ failureIf (amt < (0 :: Y.Dense "USD")) (TransactionAmountNegative (T.pack (show amt)))

@@ -34,7 +34,6 @@ dependencies:
 - validation
 - transformers
 - mtl
-- monad-validate
 - aeson
 - aeson-qq
 - unordered-containers

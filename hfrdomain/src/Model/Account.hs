@@ -26,7 +26,7 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
 import           Data.Aeson (Value(..), decode)
-import           Validation (Validation (..), failure, validationToEither, eitherToValidation)
+import           Validation (Validation (..), failure, failureIf, validationToEither, eitherToValidation)
 import           Data.List.NonEmpty
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Time
@@ -61,9 +61,7 @@ validate account = validateOpenCloseDate account *> validateRateOfInterest accou
 validateOpenCloseDate :: Account -> Validation (NonEmpty ErrorInfo) Account 
 validateOpenCloseDate acc = case acc ^. accountCloseDate of
   Nothing -> Success acc 
-  Just dt -> if acc ^. accountOpenDate <= dt
-               then Success acc
-               else failure $ InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show (acc ^. accountOpenDate))
+  Just dt -> acc <$ failureIf (acc ^. accountOpenDate > dt) (InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show (acc ^. accountOpenDate)))
 
 parseAccountNo :: Value -> Validation (NonEmpty ErrorInfo) T.Text
 parseAccountNo v = case validationToEither $ asString v of
@@ -71,10 +69,7 @@ parseAccountNo v = case validationToEither $ asString v of
   Left  str -> eitherToValidation (Left str)
       
 validateAccountNumber :: T.Text -> Validation (NonEmpty ErrorInfo) T.Text
-validateAccountNumber ano = 
-  if T.length ano /= 10
-    then failure $ InvalidAccountNumber ano
-    else Success ano
+validateAccountNumber ano = ano <$ failureIf (T.length ano /= 10) (InvalidAccountNumber ano)
 
 parseAccountType :: Value -> Validation (NonEmpty ErrorInfo) AccountType
 parseAccountType = asAccountType
@@ -91,10 +86,7 @@ parseAccountName v = case validationToEither $ asString v of
   Left  str -> eitherToValidation (Left str)
 
 validateAccountName :: T.Text -> Validation (NonEmpty ErrorInfo) T.Text
-validateAccountName nm = 
-  if T.null nm
-      then failure $ InvalidAccountName nm
-      else Success nm
+validateAccountName nm = nm <$ failureIf (T.null nm) (InvalidAccountName nm)
 
 parseAccountOpenDate :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) UTCTime
 parseAccountOpenDate curr v = case validationToEither $ asDate v of
@@ -102,10 +94,7 @@ parseAccountOpenDate curr v = case validationToEither $ asDate v of
   Left  e  -> eitherToValidation (Left e)
       
 validateAccountOpenDate :: UTCTime -> UTCTime -> Validation (NonEmpty ErrorInfo) UTCTime
-validateAccountOpenDate current d = 
-  if current >= d 
-  then Success d
-  else failure $ InvalidAccountOpenDate (T.pack $ "Account open date " ++ show d ++ " " ++ show current ++ " cannot be in future")
+validateAccountOpenDate current d = d <$ failureIf (current < d) (InvalidAccountOpenDate (T.pack $ "Account open date " ++ show d ++ " " ++ show current ++ " cannot be in future"))
 
 parseAccountCloseDate :: Value -> Validation (NonEmpty ErrorInfo) (Maybe UTCTime)
 parseAccountCloseDate v = case validationToEither $ asString v of
@@ -126,13 +115,11 @@ parseCurrentBalance v = case validationToEither $ asMoney v of
 
 validateCurrentBalance :: Y.Dense "USD" -> Validation (NonEmpty ErrorInfo) (Y.Dense "USD")
 validateCurrentBalance balance = 
-  if balance >= (100 :: Y.Dense "USD")
-  then Success balance
-  else failure $ AccountBalanceLessThanMinimumBalance (T.pack (show balance))
+  balance <$ failureIf (balance < (100 :: Y.Dense "USD")) (AccountBalanceLessThanMinimumBalance (T.pack (show balance)))
       
 validateRateOfInterest :: Account -> Validation (NonEmpty ErrorInfo) Account
 validateRateOfInterest acc = case acc ^. accountType of 
-  Ch -> if acc ^. rateOfInterest == 0.0 then Success acc else failure RateNotApplicableForCheckingAccount
+  Ch -> acc <$ failureIf (acc ^. rateOfInterest == 0.0) RateNotApplicableForCheckingAccount
   Sv -> Success acc
 
 -- | Check if an account is not closed
