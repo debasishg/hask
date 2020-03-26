@@ -11,5 +11,7 @@ extra-deps:
 - polysemy-plugin-0.2.5.0@sha256:67e30be568a141b852aace1a60e180cb5060fbb2835365a81a3ea779536d6d35,2952
 - polysemy-zoo-0.7.0.0@sha256:e98ba9620128df8f8aea6adec5a0e324103324a2d2368930a2e214a2c334551b,3900
 - compact-0.1.0.1@sha256:a74976cfdb16a76ca006b58f2a952d604e3244b404e0458a1ec1c255d7d7c8eb,1997
+- validation-selective-0.0.0.0
+
 resolver: nightly-2020-03-01
 # compiler: ghc-8.8.2

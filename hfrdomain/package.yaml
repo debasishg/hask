@@ -34,7 +34,6 @@ dependencies:
 - validation
 - transformers
 - mtl
-- monad-validate
 - aeson
 - aeson-qq
 - unordered-containers
@@ -60,6 +59,7 @@ dependencies:
 - resource-pool
 - random
 - hedis
+- validation-selective
 
 library:
   source-dirs: src
