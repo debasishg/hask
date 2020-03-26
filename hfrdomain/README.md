@@ -60,42 +60,23 @@ Every model in the project is designed using the following principles:
 * A model is built as an aggregate using a smart constructor that takes an unvalidated object entering the bounded context from the edges. In this project we assume a json value entering the context from outside and getting the shape of a validated aggregate as it leaves the smart constructor. Here's an example for the `Account` model:
 
 ```haskell
-makeAccount :: forall m. (MonadReader Env m, 
-                          MonadValidate [Error] m => Value -> IO (m Account)
+makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
 ```
 
-In this example `makeAccount` takes a `Value` which is an aeson type and generates an `Account` under a monadic context. The context is used for the validation of the aggregate. We will talk about the validation part very soon.
+In this example `makeAccount` takes a date time (which is the current date) and a `Value` which is an aeson type (JSON) and generates an `Account` under an effectful context. The context is used for the validation of the aggregate. We will talk about the validation part very soon.
 
-* A model comes out from the json value _always_ as a _validated_ entity - the aggregate. The validation is done using a monad transformer `ValidateT` offered by the [`monad-validate`](https://hackage.haskell.org/package/monad-validate-1.2.0.0/docs/Control-Monad-Validate.html) library. `ValidateT`, despite being a monad transformer, is designed not to necessarily halt on the first error. Hence the validation of model offers an accumulating semantics - all errors are accumulated and then reported to the client. Here's a snippet how we use the monadic validation and yet have the _accumulating semantics_ of all errors :
-
-```haskell
-makeAccount req = do 
-    utcCurrent <- getCurrentTime  
-    return $ withObject "request" req $ \o -> do
-
-        accType         <- withKey o "account_type" parseAccountType
-        accNo           <- withKey o "account_no" parseAccountNo
-        accName         <- withKey o "account_name" parseAccountName
-        accOpenDate     <- withKey o "account_open_date" (parseAccountOpenDate utcCurrent)
-        accCloseDate    <- withKey o "account_close_date" (parseAccountCloseDate accOpenDate)
-        currBalance     <- withKey o "account_current_balance" parseCurrentBalance
-        rateOfInt       <- withKey o "rate_of_interest" (parseRateOfInterest accType)
-        ...
-```
+* A model comes out from the json value _always_ as a _validated_ entity - the aggregate. The validation is done using [`validation-selective`] (https://hackage.haskell.org/package/validation-selective) library. It offers validation semantics based on the applicative and selctive functors. The validation of model offers an accumulating semantics - all errors are accumulated and then reported to the client. 
 
 * Model validation uses the _parse-then-validate_ idiom, loosely corresponding to what [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) recommends. We parse the json data and only if it passes the structural validation, we do the domain level validations. Here's an example of how we parse a date in json and then validate for the domain logic:
 
 ```haskell
-parseAccountOpenDate curr v = do 
-    dt       <- asDate v
-    openDate <- tolerate $ validateAccountOpenDate curr dt
-    pure $ fromJust openDate
+parseAccountOpenDate :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) UTCTime
+parseAccountOpenDate curr v = case validationToEither $ asDate v of
+  Right dt -> validateAccountOpenDate curr dt
+  Left  e  -> eitherToValidation (Left e)
       
-validateAccountOpenDate :: UTCTime -> UTCTime -> m UTCTime
-validateAccountOpenDate current d = 
-    if current >= d 
-    then pure d
-    else refuteErr $ InvalidAccountOpenDate (T.pack $ "Account open date " ++ show d ++ " " ++ show current ++ " cannot be in future")
+validateAccountOpenDate :: UTCTime -> UTCTime -> Validation (NonEmpty ErrorInfo) UTCTime
+validateAccountOpenDate current d = d <$ failureIf (current < d) (InvalidAccountOpenDate (T.pack $ "Account open date " ++ show d ++ " " ++ show current ++ " cannot be in future"))
 ```
 
 * Every model is its own module. It has the data and the functions that go along with the model. These functions are the domain behaviors for that model only.
