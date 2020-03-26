@@ -12,7 +12,6 @@ import qualified Money as Y
 
 import           Control.Monad.Logger (runStdoutLoggingT)
 import           Control.Monad.IO.Class
-import           Control.Lens
 import           Database.Persist.Sqlite (withSqlitePool)
 import           Database.Redis (checkedConnect, defaultConnectInfo)
 import           Validation (Validation (..))
@@ -43,24 +42,18 @@ main = runMigrateActions >>
 -- 2. for the account number specified, run a series of actions (debit and credit)
 -- 3. store the updated account back to the database
 -- 4. query that updated account and print the account details
--- behavior :: [Account] -> T.Text -> IO ()
--- behavior accounts ano = runStdoutLoggingT 
---              . withSqlitePool connectionString openConnections 
---                  $ \pool -> liftIO $ do
---                        addAccounts pool accounts 
--- 
---                        maybeAcc       <- query pool ano
---                        modified       <- maybe (fail $ "Invalid account " ++ show ano) 
---                                                (runActionsForAccount [Credit (200 :: Y.Dense "USD"), Credit (400 :: Y.Dense "USD")]) 
---                                                maybeAcc
--- 
---                        insertOrUpdate pool modified 
---                        query pool (modified ^. accountNo) >>= printResult
--- 
---   where
---     printResult (Just ac)  = print ac
---     printResult Nothing = putStrLn "Not found"
--- 
+behavior :: [Account] -> T.Text -> IO ()
+behavior accounts ano = runStdoutLoggingT 
+             . withSqlitePool connectionString openConnections 
+                 $ \pool -> liftIO $ do
+                       addAccounts pool accounts 
+                       modified       <- runActionsForAccountNo pool [Credit (200 :: Y.Dense "USD"), Credit (400 :: Y.Dense "USD")] ano
+                       _              <- either (fail . show) (insertOrUpdate pool) modified 
+                       query pool ano >>= printResult
+  where
+    printResult (Just ac)  = print ac
+    printResult Nothing = putStrLn "Not found"
+ 
 execute :: T.Text -> IO ()
 execute accountno = runStdoutLoggingT
   . withSqlitePool connectionString openConnections
