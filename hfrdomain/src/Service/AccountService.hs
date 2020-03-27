@@ -29,6 +29,7 @@ module Service.AccountService
     , queryAccountsByOpenDate
     , insertOrUpdate
     , transfer
+    , transferInUSD
     , transferCached
     ) where
 
@@ -59,7 +60,7 @@ import           Repository.AccountRepository
 import           Repository.AccountCache
 
 -- | Some of the actions that can be done on an account, e.g. debit, credit,
--- close, open, reopen etc.
+-- | close, open, reopen etc.
 data AccountAction = Debit (Y.Dense "USD") 
                    | Credit (Y.Dense "USD") 
                    | Close UTCTime
@@ -140,8 +141,8 @@ insertOrUpdate conn acc =
   runAllEffects conn (upsert acc)
 
 -- | Transfer amount from one account to another
-transfer :: Pool SqlBackend -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
-transfer conn fromAccountNo toAccountNo amount = 
+transferInUSD :: Pool SqlBackend -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
+transferInUSD conn fromAccountNo toAccountNo amount = 
   runAllEffects conn doTransfer
     where 
       doTransfer = 
@@ -150,6 +151,22 @@ transfer conn fromAccountNo toAccountNo amount =
           <*> queryAccount toAccountNo) >>= upsertMany
           where
             updateBalances (Just fa) (Just ta)  = [fa & currentBalance %~ subtract amount, ta & currentBalance %~ (+ amount)]
+            updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
+            updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
+            updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"
+
+-- | Transfer amount from one account to another using (maybe) a different currency
+-- | You need to specify an exchange rate with USD for that
+transfer :: Pool SqlBackend -> T.Text -> T.Text -> Y.Dense targetCCY -> Y.ExchangeRate "USD" targetCCY -> IO ()
+transfer conn fromAccountNo toAccountNo amount exchangeRateWithUSD = 
+  runAllEffects conn doTransfer
+    where 
+      doTransfer = 
+        (updateBalances <$> 
+              queryAccount fromAccountNo 
+          <*> queryAccount toAccountNo) >>= upsertMany
+          where
+            updateBalances (Just fa) (Just ta)  = [fa & balanceInCurrency exchangeRateWithUSD %~ subtract amount, ta & balanceInCurrency exchangeRateWithUSD %~ (+ amount)]
             updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
             updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
             updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"

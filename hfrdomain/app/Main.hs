@@ -54,6 +54,9 @@ behavior accounts ano = runStdoutLoggingT
     printResult (Just ac)  = print ac
     printResult Nothing = putStrLn "Not found"
  
+ -- | Sample use case
+ -- 1. for the account numbr specified fetch all transactions and compute the net value
+ -- 2. use the cache aware service netValueTransactionsForAccount
 execute :: T.Text -> IO ()
 execute accountno = runStdoutLoggingT
   . withSqlitePool connectionString openConnections
@@ -72,7 +75,7 @@ transferBehavior fromAccount toAccount amount accounts= runStdoutLoggingT
                      . withSqlitePool connectionString openConnections
                          $ \pool -> liftIO $ do
                                addAccounts pool accounts
-                               transfer pool fromAccount toAccount amount 
+                               transferInUSD pool fromAccount toAccount amount 
                                query pool fromAccount >>= printResult
                                query pool toAccount >>= printResult
   where
