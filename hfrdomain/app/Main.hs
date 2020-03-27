@@ -76,7 +76,7 @@ transferBehavior fromAccount toAccount amount accounts= runStdoutLoggingT
                      . withSqlitePool connectionString openConnections
                          $ \pool -> liftIO $ do
                                addAccounts pool accounts
-                               transfer pool fromAccount toAccount amount 
+                               transferInUSD pool fromAccount toAccount amount 
                                query pool fromAccount >>= printResult
                                query pool toAccount >>= printResult
   where
