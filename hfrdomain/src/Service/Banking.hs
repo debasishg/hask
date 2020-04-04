@@ -9,7 +9,9 @@ import qualified Money as Y
 import           Data.Text hiding (foldl')
 import           Data.Foldable
 import           Data.Pool
+import           Data.Time
 import           Data.Maybe (fromJust)
+import           Validation (Validation ( ..) )
 import           Polysemy
 import           Polysemy.Input
 import           Control.Applicative
@@ -20,10 +22,55 @@ import           Database.Redis (Connection)
 
 import           Model.Schema
 import           Model.Account (isAccountClosed)
+import           Model.Transaction (makeTransaction)
 import           Model.TransactionType
 import qualified Repository.AccountRepository as AR
 import qualified Repository.TransactionRepository as TR
 import qualified Repository.AccountCache as AC
+
+-- | a domain service for doing debit or credit transactions
+transact :: Pool SqlBackend -> Connection -> TransactionType -> Text -> UTCTime -> Y.Dense "USD" -> IO ()
+transact conn rconn txnType ano txnDate amount = runAllEffects conn rconn doTransaction
+  where 
+    doTransaction = do 
+      maybeAcc  <- runMaybeT $ 
+                         MaybeT (AC.fetchCachedAccount ano) 
+                     <|> MaybeT (AR.queryAccount ano)
+
+      maybe (error $ "Invalid account " ++ show ano) doDB maybeAcc
+        where
+          doDB acc =
+            TR.store (makeFullTransaction Dr txnDate amount ano) >>
+               AR.upsert updatedBalance
+                 where 
+                   updatedBalance = case txnType of
+                     Dr -> acc & currentBalance %~ subtract amount
+                     Cr -> acc & currentBalance %~ (+ amount)
+
+doTransact :: Pool SqlBackend 
+    -> Connection 
+    -> UTCTime 
+    -> TransactionType 
+    -> Text 
+    -> UTCTime 
+    -> Y.Dense "USD" 
+    -> IO ()
+doTransact conn rconn utcCurrent txnType ano txnDate amount = runAllEffects conn rconn doTransaction
+  where 
+    doTransaction = do 
+      maybeAcc  <- runMaybeT $ 
+                         MaybeT (AC.fetchCachedAccount ano) 
+                     <|> MaybeT (AR.queryAccount ano)
+
+      maybe (error $ "Invalid account " ++ show ano) doDB maybeAcc
+        where
+          doDB acc = case makeTransaction utcCurrent Dr txnDate amount ano of
+            Success txn -> TR.store txn >> AR.upsert (updatedBalance acc)
+            Failure err -> error $ show err
+
+          updatedBalance acc = case txnType of
+             Dr -> acc & currentBalance %~ subtract amount
+             Cr -> acc & currentBalance %~ (+ amount)
 
 -- | a domain service that accesses multiple repositories to fetch account and
 -- | transactions, computes the net value of all transactions fetched and updates

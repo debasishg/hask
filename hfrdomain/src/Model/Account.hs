@@ -26,7 +26,7 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
 import           Data.Aeson (Value(..), decode)
-import           Validation (Validation (..), failure, failureIf, validationToEither, eitherToValidation)
+import           Validation (Validation (..), failure, failureIf)
 import           Data.List.NonEmpty
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Time
@@ -39,9 +39,9 @@ import           Model.ValidateAeson
 import           Errors
 
 makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
-makeAccount currentTime req = case validationToEither $ _makeAccount currentTime req of
-  Right a -> validate a 
-  Left  e -> eitherToValidation (Left e) 
+makeAccount currentTime req = case _makeAccount currentTime req of
+  Success a -> validate a 
+  Failure e -> failure $ Data.List.NonEmpty.head e
 
 _makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
 _makeAccount utcCurrent req = 
@@ -64,9 +64,9 @@ validateOpenCloseDate acc = case acc ^. accountCloseDate of
   Just dt -> acc <$ failureIf (acc ^. accountOpenDate > dt) (InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show (acc ^. accountOpenDate)))
 
 parseAccountNo :: Value -> Validation (NonEmpty ErrorInfo) T.Text
-parseAccountNo v = case validationToEither $ asString v of
-  Right str -> validateAccountNumber str
-  Left  str -> eitherToValidation (Left str)
+parseAccountNo v = case asString v of
+  Success str -> validateAccountNumber str
+  Failure str -> failure $ Data.List.NonEmpty.head str
       
 validateAccountNumber :: T.Text -> Validation (NonEmpty ErrorInfo) T.Text
 validateAccountNumber ano = ano <$ failureIf (T.length ano /= 10) (InvalidAccountNumber ano)
@@ -81,37 +81,37 @@ asAccountType = \case { String s -> (case (decode . L.fromStrict . encodeUtf8) s
                         v        -> failure $ JSONBadValue "account-type" v }
 
 parseAccountName :: Value -> Validation (NonEmpty ErrorInfo) T.Text
-parseAccountName v = case validationToEither $ asString v of
-  Right str -> validateAccountName str
-  Left  str -> eitherToValidation (Left str)
+parseAccountName v = case asString v of
+  Success str -> validateAccountName str
+  Failure str -> failure $ Data.List.NonEmpty.head str
 
 validateAccountName :: T.Text -> Validation (NonEmpty ErrorInfo) T.Text
 validateAccountName nm = nm <$ failureIf (T.null nm) (InvalidAccountName nm)
 
 parseAccountOpenDate :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) UTCTime
-parseAccountOpenDate curr v = case validationToEither $ asDate v of
-  Right dt -> validateAccountOpenDate curr dt
-  Left  e  -> eitherToValidation (Left e)
+parseAccountOpenDate curr v = case asDate v of
+  Success dt -> validateAccountOpenDate curr dt
+  Failure e  -> failure $ Data.List.NonEmpty.head e
       
 validateAccountOpenDate :: UTCTime -> UTCTime -> Validation (NonEmpty ErrorInfo) UTCTime
 validateAccountOpenDate current d = d <$ failureIf (current < d) (InvalidAccountOpenDate (T.pack $ "Account open date " ++ show d ++ " " ++ show current ++ " cannot be in future"))
 
 parseAccountCloseDate :: Value -> Validation (NonEmpty ErrorInfo) (Maybe UTCTime)
-parseAccountCloseDate v = case validationToEither $ asString v of
-  Left e    -> eitherToValidation (Left e)
-  Right str -> if T.null str 
+parseAccountCloseDate v = case asString v of
+  Failure e   -> failure $ Data.List.NonEmpty.head e
+  Success str -> if T.null str 
                  then Success Nothing
                  else Just <$> validateAccountCloseDate v 
 
 validateAccountCloseDate :: Value -> Validation (NonEmpty ErrorInfo) UTCTime
-validateAccountCloseDate v = case validationToEither $ asDate v of
-  Left  e  -> eitherToValidation (Left e)
-  Right dt -> Success dt
+validateAccountCloseDate v = case asDate v of
+  Failure e -> failure $ Data.List.NonEmpty.head e
+  Success dt -> Success dt
 
 parseCurrentBalance :: Value -> Validation (NonEmpty ErrorInfo)  (Y.Dense "USD")
-parseCurrentBalance v = case validationToEither $ asMoney v of
-  Right m -> validateCurrentBalance m
-  Left  e -> eitherToValidation (Left e)
+parseCurrentBalance v = case asMoney v of
+  Success m -> validateCurrentBalance m
+  Failure e -> failure $ Data.List.NonEmpty.head e
 
 validateCurrentBalance :: Y.Dense "USD" -> Validation (NonEmpty ErrorInfo) (Y.Dense "USD")
 validateCurrentBalance balance = 
@@ -151,9 +151,9 @@ close closeDate account = maybe (pure canClose) alreadyClosed (isAccountClosed a
 -- a. the account is active
 -- b. if the amount passed is < 0 then ensure the debit does not violate min balance check
 updateBalance :: Y.Dense "USD" -> Account -> Validation (NonEmpty ErrorInfo) Account
-updateBalance amount account = case validationToEither $ checkBalance of
-  Right acc -> Success $ acc & currentBalance %~ (+ amount)
-  Left  e   -> eitherToValidation (Left e)
+updateBalance amount account = case checkBalance of
+  Success acc -> Success $ acc & currentBalance %~ (+ amount)
+  Failure e   -> failure $ Data.List.NonEmpty.head e
   where
     checkBalance = case isAccountClosed account of
         Just closedOn -> failure $ AccountAlreadyClosed (account ^. accountNo) closedOn

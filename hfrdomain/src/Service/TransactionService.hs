@@ -29,7 +29,7 @@ zeroDollars = 0 :: Y.Dense "USD"
 makeTransactionAggregateFromContext :: Value -> IO (Validation.Validation (NonEmpty ErrorInfo) Transaction)
 makeTransactionAggregateFromContext jsonValue = do
   utcCurrent <- getCurrentTime
-  return $ makeTransaction utcCurrent jsonValue
+  return $ makeTransactionFromContext utcCurrent jsonValue
 
 runAllEffects :: Pool SqlBackend -> Sem '[TransactionRepository, Input (Pool SqlBackend), Embed IO] a -> IO a
 runAllEffects conn program =

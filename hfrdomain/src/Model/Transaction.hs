@@ -11,7 +11,8 @@
 
 module Model.Transaction 
   (
-      makeTransaction
+      makeTransactionFromContext
+    , makeTransaction
     , Transaction
   ) where
 
@@ -22,7 +23,7 @@ import qualified Money as Y
 import           Data.Time
 import           Data.Text.Encoding (encodeUtf8)
 import           Data.Aeson (Value(..), decode)
-import           Validation (Validation (..), failure, failureIf, validationToEither, eitherToValidation)
+import           Validation (Validation (..), failure, failureIf)
 import           Data.List.NonEmpty
 
 import           Model.ValidateAeson
@@ -31,8 +32,8 @@ import           Model.TransactionType
 import           Errors
 
 -- | Smart constructor for making a Transaction from JSON data
-makeTransaction :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Transaction
-makeTransaction utcCurrent req = 
+makeTransactionFromContext :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Transaction
+makeTransactionFromContext utcCurrent req = 
     withObject "request" req $ \o -> 
           makeFullTransaction 
       <$> withKey o "transaction_type" parseTransactionType 
@@ -50,22 +51,36 @@ asTransactionType = \case { String s -> (case (decode . L.fromStrict . encodeUtf
                             v        -> failure $ JSONBadValue "transaction-type" v }
 
 parseTransactionAccountNo :: Value -> Validation (NonEmpty ErrorInfo) T.Text
-parseTransactionAccountNo v = case validationToEither $ asString v of
-  Right str -> str <$ failureIf (T.length str /= 10) (InvalidAccountNumber str)
-  Left e    -> eitherToValidation (Left e)
+parseTransactionAccountNo v = case asString v of
+  Success str -> str <$ failureIf (T.length str /= 10) (InvalidAccountNumber str)
+  Failure e   -> failure $ Data.List.NonEmpty.head e
 
 parseTransactionDate :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) UTCTime
-parseTransactionDate curr v = case validationToEither $ asDate v of
-  Right dt -> validateTransactionDate curr dt
-  Left  e  -> eitherToValidation (Left e)
+parseTransactionDate curr v = case asDate v of
+  Success dt -> validateTransactionDate curr dt
+  Failure e  -> failure $ Data.List.NonEmpty.head e
       
 validateTransactionDate :: UTCTime -> UTCTime -> Validation (NonEmpty ErrorInfo) UTCTime
 validateTransactionDate current d = d <$ failureIf (current < d) (InvalidTransactionDate (T.pack $ "Transaction date " ++ show d ++ " " ++ show current ++ " cannot be in future"))
       
 parseTransactionAmount :: Value -> Validation (NonEmpty ErrorInfo) (Y.Dense "USD")
-parseTransactionAmount v = case validationToEither $ asMoney v of
-  Right amt -> validateTransactionAmount amt
-  Left  e   -> eitherToValidation (Left e)
+parseTransactionAmount v = case asMoney v of
+  Success amt -> validateTransactionAmount amt
+  Failure e   -> failure $ Data.List.NonEmpty.head e
       
 validateTransactionAmount :: Y.Dense "USD" -> Validation (NonEmpty ErrorInfo) (Y.Dense "USD")
 validateTransactionAmount amt = amt <$ failureIf (amt < (0 :: Y.Dense "USD")) (TransactionAmountNegative (T.pack (show amt)))
+
+-- | Smart constructor for making a Transaction from individual fields
+makeTransaction :: UTCTime 
+    -> TransactionType
+    -> UTCTime 
+    -> Y.Dense "USD"
+    -> T.Text
+    -> Validation (NonEmpty ErrorInfo) Transaction
+makeTransaction utcCurrent txnType txnDate txnAmount txnAccountNo =
+      makeFullTransaction 
+  <$> Success txnType
+  <*> validateTransactionDate utcCurrent txnDate
+  <*> validateTransactionAmount txnAmount
+  <*> Success txnAccountNo
