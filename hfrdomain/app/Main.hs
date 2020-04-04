@@ -15,8 +15,10 @@ import           Control.Monad.IO.Class
 import           Database.Persist.Sqlite (withSqlitePool)
 import           Database.Redis (checkedConnect, defaultConnectInfo)
 import           Validation (Validation (..))
+import           Data.Time
 
 import           Model.Account
+import           Model.TransactionType
 import           Service.AccountService
 import           Service.Banking
 
@@ -27,15 +29,16 @@ openConnections :: Int
 openConnections = 3
 
 main :: IO ()
-main = runMigrateActions >> 
-           openNewAccounts >>= \case 
-             Success accounts -> transferBehavior "0123456789" "1234567890" (400 :: Y.Dense "USD") accounts
-             Failure e        -> (error . show) e
-               -- transferBehavior accs "01238789" "1234890" (400 :: Y.Dense "USD")
-
 -- main = runMigrateActions >> 
-           -- openNewAccounts >>= 
-               -- flip behavior "0123456789" 
+--            openNewAccounts >>= \case 
+--              Success accounts -> transferBehavior "0123456789" "1234567890" (400 :: Y.Dense "USD") accounts
+--              Failure e        -> (error . show) e
+--                -- transferBehavior accs "01238789" "1234890" (400 :: Y.Dense "USD")
+
+main = runMigrateActions >> 
+           openNewAccounts >>= \case
+             Success accounts -> compositeBehavior accounts "0123456789" 
+             Failure e        -> (error . show) e
 
 -- | Sample use case
 -- 1. add a bunch of accounts to the Database
@@ -81,3 +84,24 @@ transferBehavior fromAccount toAccount amount accounts= runStdoutLoggingT
   where
     printResult (Just ac)  = print ac
     printResult Nothing = putStrLn "Not found"
+
+-- | Sample use case
+-- 1. add a bunch of accounts to the Database
+-- 2. for the account number specified, run a series of transactions (debit and credit)
+--    each of them will write transactions to db and update balance in account
+-- 3. query that updated account and print the account details
+compositeBehavior :: [Account] -> T.Text -> IO ()
+compositeBehavior accounts ano = runStdoutLoggingT 
+                      . withSqlitePool connectionString openConnections 
+                          $ \pool -> liftIO $ do
+                                rconn <- checkedConnect defaultConnectInfo 
+                                utcCurrent <- getCurrentTime
+                                addAccounts pool accounts 
+                                _ <- transact pool rconn utcCurrent Cr ano utcCurrent (200 :: Y.Dense "USD")
+                                _ <- transact pool rconn utcCurrent Cr ano utcCurrent (400 :: Y.Dense "USD")
+                                _ <- transact pool rconn utcCurrent Dr ano utcCurrent (100 :: Y.Dense "USD")
+                                query pool ano >>= printResult
+  where
+    printResult (Just ac)  = print ac
+    printResult Nothing = putStrLn "Not found"
+ 

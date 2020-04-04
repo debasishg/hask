@@ -139,7 +139,6 @@ openDaysSince account sinceUTC =
     then Nothing 
     else Just $ diffUTCTime (account ^. accountOpenDate) sinceUTC
 
-
 -- | Close the bank account with the closeDate passed in. Checks if the account
 -- is already closed, in which case it errors out
 close :: UTCTime -> Account -> Validation (NonEmpty ErrorInfo) Account

@@ -64,6 +64,10 @@ transact conn rconn utcCurrent txnType ano txnDate amount = runAllEffects conn r
 -- | This is a cached service where we try to fetch accounts from the cache first and if that
 -- | fails we fall back to the database. Similarly after update to database we update the cache
 -- | with the updated accounts
+-- |
+-- | The function offers transfer in any currency - hence you need to pass the exchange rate with
+-- | USD since account maintains balance in USD. If you want to pass amount in USD, pass 1 as the
+-- | exchange rate
 transfer :: Pool SqlBackend 
     -> Connection 
     -> Text 
