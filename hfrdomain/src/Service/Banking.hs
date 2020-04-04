@@ -11,7 +11,7 @@ import           Data.Foldable
 import           Data.Pool
 import           Data.Time
 import           Data.Maybe (fromJust)
-import           Validation (Validation ( ..) )
+import           Validation (Validation (..) )
 import           Polysemy
 import           Polysemy.Input
 import           Control.Applicative
@@ -21,7 +21,7 @@ import           Database.Persist.Sqlite (SqlBackend)
 import           Database.Redis (Connection)
 
 import           Model.Schema
-import           Model.Account (isAccountClosed)
+import           Model.Account (isAccountClosed, balanceInCurrency)
 import           Model.Transaction (makeTransaction)
 import           Model.TransactionType
 import qualified Repository.AccountRepository as AR
@@ -29,25 +29,10 @@ import qualified Repository.TransactionRepository as TR
 import qualified Repository.AccountCache as AC
 
 -- | a domain service for doing debit or credit transactions
-transact :: Pool SqlBackend -> Connection -> TransactionType -> Text -> UTCTime -> Y.Dense "USD" -> IO ()
-transact conn rconn txnType ano txnDate amount = runAllEffects conn rconn doTransaction
-  where 
-    doTransaction = do 
-      maybeAcc  <- runMaybeT $ 
-                         MaybeT (AC.fetchCachedAccount ano) 
-                     <|> MaybeT (AR.queryAccount ano)
-
-      maybe (error $ "Invalid account " ++ show ano) doDB maybeAcc
-        where
-          doDB acc =
-            TR.store (makeFullTransaction Dr txnDate amount ano) >>
-               AR.upsert updatedBalance
-                 where 
-                   updatedBalance = case txnType of
-                     Dr -> acc & currentBalance %~ subtract amount
-                     Cr -> acc & currentBalance %~ (+ amount)
-
-doTransact :: Pool SqlBackend 
+-- | each transaction created will be added to transaction table and
+-- | balance in account table will be updated depending on the type
+-- | of the transaction
+transact :: Pool SqlBackend 
     -> Connection 
     -> UTCTime 
     -> TransactionType 
@@ -55,12 +40,11 @@ doTransact :: Pool SqlBackend
     -> UTCTime 
     -> Y.Dense "USD" 
     -> IO ()
-doTransact conn rconn utcCurrent txnType ano txnDate amount = runAllEffects conn rconn doTransaction
+transact conn rconn utcCurrent txnType ano txnDate amount = runAllEffects conn rconn doTransaction
   where 
     doTransaction = do 
-      maybeAcc  <- runMaybeT $ 
-                         MaybeT (AC.fetchCachedAccount ano) 
-                     <|> MaybeT (AR.queryAccount ano)
+
+      maybeAcc <- getAccount 
 
       maybe (error $ "Invalid account " ++ show ano) doDB maybeAcc
         where
@@ -72,6 +56,46 @@ doTransact conn rconn utcCurrent txnType ano txnDate amount = runAllEffects conn
              Dr -> acc & currentBalance %~ subtract amount
              Cr -> acc & currentBalance %~ (+ amount)
 
+          getAccount = runMaybeT $
+                MaybeT (AC.fetchCachedAccount ano) 
+            <|> MaybeT (AR.queryAccount ano)
+
+-- | Transfer amount from one account to another
+-- | This is a cached service where we try to fetch accounts from the cache first and if that
+-- | fails we fall back to the database. Similarly after update to database we update the cache
+-- | with the updated accounts
+transfer :: Pool SqlBackend 
+    -> Connection 
+    -> Text 
+    -> Text 
+    -> Y.Dense target
+    -> Y.ExchangeRate "USD" target
+    -> IO ()
+transfer conn rconn fromAccountNo toAccountNo amount exchangeRateWithUSD = 
+  runAllEffects conn rconn doTransfer
+    where 
+      doTransfer = updateAccountBalances >>= \accs -> do
+        AR.upsertMany accs
+        AC.cacheAccounts accs 
+          where
+            updateAccountBalances = 
+              updateBalances <$> getFromAccount <*> getToAccount 
+                where
+                  getFromAccount = runMaybeT $
+                        MaybeT (AC.fetchCachedAccount fromAccountNo) 
+                    <|> MaybeT (AR.queryAccount fromAccountNo)
+
+                  getToAccount = runMaybeT $
+                        MaybeT (AC.fetchCachedAccount toAccountNo) 
+                    <|> MaybeT (AR.queryAccount toAccountNo)
+
+                  updateBalances (Just fa) (Just ta)  = [fa & balanceInCurrency exchangeRateWithUSD %~ subtract amount, 
+                                                         ta & balanceInCurrency exchangeRateWithUSD %~ (+ amount)]
+
+                  updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
+                  updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
+                  updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"
+
 -- | a domain service that accesses multiple repositories to fetch account and
 -- | transactions, computes the net value of all transactions fetched and updates
 -- | the balance in the account repository
@@ -82,9 +106,7 @@ netValueTransactionsForAccount conn rconn ano = runAllEffects conn rconn doNetVa
     doNetValueComputation = do
 
       -- try to get the account from cache, if not found, fetch from database
-      maybeAcc  <- runMaybeT $ 
-                         MaybeT (AC.fetchCachedAccount ano) 
-                     <|> MaybeT (AR.queryAccount ano)
+      maybeAcc  <- getAccount
 
       -- fail if the account does not exist
       -- if exists, check if the account is already closed
@@ -99,6 +121,10 @@ netValueTransactionsForAccount conn rconn ano = runAllEffects conn rconn doNetVa
             maybeCloseDate
 
         where
+          getAccount = runMaybeT $
+                MaybeT (AC.fetchCachedAccount ano) 
+            <|> MaybeT (AR.queryAccount ano)
+
           accountClosedErr closeDate = error ("Account number " ++ show ano ++ " is closed on " ++ show closeDate)
           computeNetValueAndUpdate acc = do
             txns <- TR.queryByAccount ano

@@ -30,7 +30,6 @@ module Service.AccountService
     , insertOrUpdate
     , transfer
     , transferInUSD
-    , transferCached
     ) where
 
 import qualified Data.Text as T
@@ -42,12 +41,9 @@ import           Data.Aeson.QQ (aesonQQ)
 import           Data.Time
 import           Control.Arrow
 import           Control.Lens
-import           Control.Applicative
-import           Control.Monad.Trans.Maybe 
 import           Polysemy          
 import           Polysemy.Input          
 import           Database.Persist.Sqlite (SqlBackend, runMigration)
-import           Database.Redis (Connection)
 import           Data.List.NonEmpty hiding (map)
 import           Validation (Validation (..), validationToEither)
 
@@ -57,7 +53,6 @@ import           Errors
 import           Combinators
 import           Repository.SqliteUtils (runSqliteAction)
 import           Repository.AccountRepository
-import           Repository.AccountCache
 
 -- | Some of the actions that can be done on an account, e.g. debit, credit,
 -- | close, open, reopen etc.
@@ -170,50 +165,3 @@ transfer conn fromAccountNo toAccountNo amount exchangeRateWithUSD =
             updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
             updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
             updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"
-
--- | Gives a lens for getting / setting account balance in a specific currency
--- | given the appropriate exchange rate
-balanceInCurrency :: Y.ExchangeRate "USD" target -> Lens' Account (Y.Dense target)
-balanceInCurrency usd2target = lens (getter usd2target) (setter $ Y.exchangeRateRecip usd2target)
-  where
-    getter :: Y.ExchangeRate "USD" target -> Account -> Y.Dense target
-    getter exchangeRate account = 
-      Y.exchange exchangeRate (account ^. currentBalance) 
-
-    setter :: Y.ExchangeRate target "USD" -> Account -> Y.Dense target -> Account
-    setter exchangeRate account amount = account & currentBalance %~ (+ Y.exchange exchangeRate amount)
-
-runAllEffectsWithCache :: Pool SqlBackend -> Connection -> Sem '[AccountRepository, AccountCache, Input (Pool SqlBackend), Input Connection, Embed IO] a -> IO a
-runAllEffectsWithCache conn rconn program =
-  program                    
-    & runAccountRepository
-    & runAccountCache
-    & runInputConst conn  
-    & runInputConst rconn  
-    & runM
-
--- | Transfer amount from one account to another
--- | This is a cached service where we try to fetch accounts from the cache first and if that
--- | fails we fall back to the database. Similarly after update to database we update the cache
--- | with the updated accounts
-transferCached :: Pool SqlBackend -> Connection -> T.Text -> T.Text -> Y.Dense "USD" -> IO ()
-transferCached conn rconn fromAccountNo toAccountNo amount = 
-  runAllEffectsWithCache conn rconn doTransfer
-    where 
-      doTransfer = updateAccountBalances >>= \accs -> do
-        upsertMany accs
-        cacheAccounts accs 
-          where
-            updateAccountBalances = 
-              updateBalances <$> 
-                    runMaybeT 
-                          (MaybeT (fetchCachedAccount fromAccountNo) 
-                      <|>  MaybeT (queryAccount fromAccountNo))
-                <*> runMaybeT 
-                          (MaybeT (fetchCachedAccount toAccountNo) 
-                      <|>  MaybeT (queryAccount toAccountNo))
-                where
-                  updateBalances (Just fa) (Just ta)  = [fa & currentBalance %~ subtract amount, ta & currentBalance %~ (+ amount)]
-                  updateBalances (Just _) Nothing     = error $ "To account [" ++ show toAccountNo ++ "] does not exist"
-                  updateBalances Nothing (Just _)     = error $ "From account [" ++ show fromAccountNo ++ "] does not exist"
-                  updateBalances Nothing Nothing      = error $ "From account [" ++ show fromAccountNo ++ "] and To account [" ++ show toAccountNo ++ "] does not exist"

@@ -19,6 +19,7 @@ module Model.Account
     , Account
     , accountNo
     , accountOpenDate
+    , balanceInCurrency
     , Env(..)
     ) where
 
@@ -190,3 +191,15 @@ feeFor acc balance = case acc ^. accountType of
   Sv -> if balance <= 1000
           then 0 :: Y.Dense "USD"
           else fromJust $ Y.dense $ toRational balance * (-0.01)
+
+-- | Gives a lens for getting / setting account balance in a specific currency
+-- | given the appropriate exchange rate
+balanceInCurrency :: Y.ExchangeRate "USD" target -> Lens' Account (Y.Dense target)
+balanceInCurrency usd2target = lens (getter usd2target) (setter $ Y.exchangeRateRecip usd2target)
+  where
+    getter :: Y.ExchangeRate "USD" target -> Account -> Y.Dense target
+    getter exchangeRate account = 
+      Y.exchange exchangeRate (account ^. currentBalance) 
+
+    setter :: Y.ExchangeRate target "USD" -> Account -> Y.Dense target -> Account
+    setter exchangeRate account amount = account & currentBalance %~ (+ Y.exchange exchangeRate amount)
