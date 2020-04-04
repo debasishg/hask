@@ -79,15 +79,11 @@ transfer conn rconn fromAccountNo toAccountNo amount exchangeRateWithUSD =
         AC.cacheAccounts accs 
           where
             updateAccountBalances = 
-              updateBalances <$> getFromAccount <*> getToAccount 
+              updateBalances <$> getAccount fromAccountNo <*> getAccount toAccountNo
                 where
-                  getFromAccount = runMaybeT $
-                        MaybeT (AC.fetchCachedAccount fromAccountNo) 
-                    <|> MaybeT (AR.queryAccount fromAccountNo)
-
-                  getToAccount = runMaybeT $
-                        MaybeT (AC.fetchCachedAccount toAccountNo) 
-                    <|> MaybeT (AR.queryAccount toAccountNo)
+                  getAccount = \ano -> runMaybeT $ 
+                        MaybeT (AR.queryAccount ano) 
+                    <|> MaybeT (AR.queryAccount ano)
 
                   updateBalances (Just fa) (Just ta)  = [fa & balanceInCurrency exchangeRateWithUSD %~ subtract amount, 
                                                          ta & balanceInCurrency exchangeRateWithUSD %~ (+ amount)]
