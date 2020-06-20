@@ -13,5 +13,6 @@ extra-deps:
 - compact-0.1.0.1@sha256:a74976cfdb16a76ca006b58f2a952d604e3244b404e0458a1ec1c255d7d7c8eb,1997
 - validation-selective-0.0.0.0
 
-resolver: nightly-2020-03-01
+# resolver: nightly-2020-03-01
+resolver: lts-16.1
 # compiler: ghc-8.8.2
