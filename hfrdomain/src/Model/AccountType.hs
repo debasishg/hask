@@ -8,7 +8,7 @@ import qualified Database.Persist.TH as PTH
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics
 
-data AccountType = Ch | Sv deriving (Show, Read, Generic)
+data AccountType = Ch | Sv deriving (Eq, Show, Read, Generic)
 instance FromJSON AccountType
 instance ToJSON AccountType
 

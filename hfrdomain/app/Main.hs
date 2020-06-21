@@ -16,17 +16,23 @@ import           Database.Persist.Sqlite (withSqlitePool)
 import           Database.Redis (checkedConnect, defaultConnectInfo)
 import           Validation (Validation (..))
 import           Data.Time
+import           Data.IORef
 
 import           Model.Account
+import           Model.Schema
 import           Model.TransactionType
 import           Service.AccountService
 import           Service.Banking
+import           AppState
 
 connectionString :: T.Text
 connectionString = "/tmp/domain.db"
 
 openConnections :: Int
 openConnections = 3
+
+zeroDollars :: Y.Dense "USD"
+zeroDollars = 0 :: Y.Dense "USD"
 
 main :: IO ()
 -- main = runMigrateActions >> 
@@ -35,10 +41,21 @@ main :: IO ()
 --              Failure e        -> (error . show) e
 --                -- transferBehavior accs "01238789" "1234890" (400 :: Y.Dense "USD")
 
-main = runMigrateActions >> 
+-- main = runMigrateActions >> 
+--            openNewAccounts >>= \case
+--              Success accounts -> compositeBehavior accounts "0123456789" 
+--              Failure e        -> (error . show) e
+
+main = runMigrateActions >>
            openNewAccounts >>= \case
-             Success accounts -> compositeBehavior accounts "0123456789" 
+             Success accounts -> do
+                 stateRef <- newIORef zeroDollars
+                 runApp (updateTaxProfile accounts :: AppState MoneyUSD ()) stateRef
+                 endState <- readIORef stateRef
+                 print endState
+
              Failure e        -> (error . show) e
+
 
 -- | Sample use case
 -- 1. add a bunch of accounts to the Database
@@ -57,7 +74,7 @@ behavior accounts ano = runStdoutLoggingT
     printResult (Just ac)  = print ac
     printResult Nothing = putStrLn "Not found"
  
- -- | Sample use case
+ -- Sample use case
  -- 1. for the account numbr specified fetch all transactions and compute the net value
  -- 2. use the cache aware service netValueTransactionsForAccount
 execute :: T.Text -> IO ()

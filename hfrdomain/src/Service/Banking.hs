@@ -2,6 +2,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiWayIf #-}
+
 
 module Service.Banking where
 
@@ -16,6 +18,7 @@ import           Polysemy
 import           Polysemy.Input
 import           Control.Applicative
 import           Control.Monad.Trans.Maybe 
+import           Control.Monad.State
 import           Control.Lens hiding (element)
 import           Database.Persist.Sqlite (SqlBackend)
 import           Database.Redis (Connection)
@@ -24,6 +27,7 @@ import           Model.Schema
 import           Model.Account (isAccountClosed, balanceInCurrency)
 import           Model.Transaction (makeTransaction)
 import           Model.TransactionType
+import           Model.AccountType
 import qualified Repository.AccountRepository as AR
 import qualified Repository.TransactionRepository as TR
 import qualified Repository.AccountCache as AC
@@ -154,3 +158,16 @@ runAllEffects conn rconn program =
     & runInputConst conn  
     & runInputConst rconn  
     & runM
+
+-- MonadState, as a typeclass, gives you the ability to write generically over all Monads with state.
+-- The idea here is to maintain a mutable state as the tax profile that gets updated
+-- as soon as the tax for an account is computed. Maybe this use case is a bit of an overkill,
+-- but we are trying to play around with an abstraction of mutable state.
+updateTaxProfile :: MonadState MoneyUSD m => [Account] -> m ()
+updateTaxProfile accounts = do
+  if | Data.Foldable.null accounts         -> return ()
+     | isChecking $ Prelude.head accounts  -> updateTaxProfile (Prelude.tail accounts)
+     | otherwise                           -> modify (+ taxOnBalance (Prelude.head accounts)) >> updateTaxProfile (Prelude.tail accounts)
+         where
+           taxOnBalance account = fromJust $ Y.dense $ (toRational $ (account ^. currentBalance)) * 0.1
+           isChecking account = account ^. accountType == Ch
