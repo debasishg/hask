@@ -98,7 +98,8 @@ openNewAccounts = do
   aggr1 <- makeAccountAggregateFromContext "0123456789" "\"Sv\"" "debasish"
   aggr2 <- makeAccountAggregateFromContext "1234567890" "\"Sv\"" "paramita"
   aggr3 <- makeAccountAggregateFromContext "2345678901" "\"Sv\"" "aarush"
-  return $ sequenceA [aggr1, aggr2, aggr3]
+  aggr4 <- makeAccountAggregateFromContext "3456789010" "\"Ch\"" "bhaja"
+  return $ sequenceA [aggr1, aggr2, aggr3, aggr4]
 
 runMigrateActions :: IO ()
 runMigrateActions =

@@ -8,6 +8,7 @@
 module Service.Banking where
 
 import qualified Money as Y
+import qualified Data.Map as M
 import           Data.Text hiding (foldl')
 import           Data.Foldable
 import           Data.Pool
@@ -106,7 +107,6 @@ transfer conn rconn fromAccountNo toAccountNo amount exchangeRateWithUSD =
 netValueTransactionsForAccount :: Pool SqlBackend -> Connection -> Text -> IO ()
 netValueTransactionsForAccount conn rconn ano = runAllEffects conn rconn doNetValueComputation
   where 
-    zeroDollars = 0 :: Y.Dense "USD"
     doNetValueComputation = do
 
       -- try to get the account from cache, if not found, fetch from database
@@ -133,16 +133,10 @@ netValueTransactionsForAccount conn rconn ano = runAllEffects conn rconn doNetVa
           computeNetValueAndUpdate acc = do
             txns <- TR.queryByAccount ano
 
-            let amount = foldl' (+) zeroDollars (signValAmount <$> txns)
-                updated = acc & currentBalance %~ (+ amount)
+            let updated = updateBalance acc txns
 
             AR.store updated
             AC.cacheAccount updated
-              where 
-                signValAmount txn = 
-                  if txn ^. transactionType == Cr
-                    then txn ^. transactionAmount
-                    else (-1) * (txn ^. transactionAmount)
 
 runAllEffects :: 
      Pool SqlBackend 
@@ -171,3 +165,50 @@ updateTaxProfile accounts = do
          where
            taxOnBalance account = fromJust $ Y.dense $ (toRational $ (account ^. currentBalance)) * 0.1
            isChecking account = account ^. accountType == Ch
+
+-- | Build the tax deduction profile of accounts for the list of transactions
+-- | passed as input
+buildTxnTaxProfile :: MonadState (M.Map Text MoneyUSD) m => [Transaction] -> m ()
+buildTxnTaxProfile txns = do
+  if | Data.Foldable.null txns         -> return ()
+     | otherwise                       -> (do
+         st <- get
+         let txn = Prelude.head txns
+             ano = txnAccountNo txn
+         maybe 
+           (put (M.insert ano (taxOn txn) st)) 
+           (\_ -> (put (M.adjust (+ (taxOn txn)) ano st)))
+           (M.lookup ano st)) >> buildTxnTaxProfile (Prelude.tail txns)
+         where
+           txnAccountNo txn = txn ^. transactionAccountNo
+           taxOn txn = fromJust $ Y.dense $ (toRational $ (txn ^. transactionAmount)) * 0.1
+
+-- | Build the tax deduction profile of accounts for the list of transactions
+-- | passed as input
+buildAccountTaxProfile :: MonadState (M.Map Text MoneyUSD) m => [Account] -> m ()
+buildAccountTaxProfile accounts = do
+  if | Data.Foldable.null accounts     -> return ()
+     | otherwise                       -> (do
+         st <- get
+         let account = Prelude.head accounts
+             ano = no account
+         maybe 
+           (put (M.insert ano (taxOn account) st)) 
+           (\_ -> (put (M.adjust (+ (taxOn account)) ano st)))
+           (M.lookup ano st)) >> buildAccountTaxProfile (Prelude.tail accounts)
+         where
+           no account = account ^. accountNo
+           taxOn account = fromJust $ Y.dense $ (toRational $ (account ^. currentBalance)) * 0.1
+
+-- | updates the current balance of an account from a 
+-- | list of transactions
+updateBalance :: Account -> [Transaction] -> Account
+updateBalance account txns = 
+  let amount = foldl' (+) zeroDollars (signValAmount <$> txns)
+  in account & currentBalance %~ (+ amount)
+    where 
+      zeroDollars = 0 :: Y.Dense "USD"
+      signValAmount txn = 
+        if txn ^. transactionType == Cr
+          then txn ^. transactionAmount
+          else (-1) * (txn ^. transactionAmount)

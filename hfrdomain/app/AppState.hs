@@ -5,13 +5,17 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeInType, AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 module AppState where
 
+import qualified Data.Map as M
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Data.IORef
+import           Data.Text hiding (foldl')
 
 import           Model.Schema
 
@@ -21,6 +25,7 @@ import           Model.Schema
 -- or when we want a mutable field inside a larger structure that is in 
 -- turn held by a synchronization variable.
 -- We need to use `MVar` or `STM` for more robust concurrency semantics
+-- type AppState :: Type -> Type
 newtype AppState s a = AppState { runApp :: IORef s -> IO a }
   deriving (
     Functor, Applicative, Monad,
@@ -42,6 +47,9 @@ newtype AppState s a = AppState { runApp :: IORef s -> IO a }
     -- underlying implementations, namely `IORef s -> IO a`.
     ) via ReaderT (IORef s) IO
 
+  -- deriving (MonadState s)
+  -- via IORefState s @Type (AppState s)
+
 
 -- We need to implement `MonadState MoneyUSD (AppState MoneyUSD)` so that we can
 -- use `AppState` in place of the abstract `m`.
@@ -53,6 +61,19 @@ instance MonadState MoneyUSD (AppState MoneyUSD) where
     return currentState                         -- return the current state
 
   put :: MoneyUSD -> AppState MoneyUSD ()
+  put newState = do
+    stateRef <- ask                       -- ask for the state ref
+    liftIO (writeIORef stateRef newState) -- write the new state
+    return ()                             -- return nothin'
+
+instance MonadState (M.Map Text MoneyUSD) (AppState (M.Map Text MoneyUSD)) where
+  get :: AppState (M.Map Text MoneyUSD) (M.Map Text MoneyUSD)
+  get = do
+    stateRef <- ask                             -- ask for the state ref
+    currentState <- liftIO (readIORef stateRef) -- read the current state
+    return currentState                         -- return the current state
+
+  put :: M.Map Text MoneyUSD -> AppState (M.Map Text MoneyUSD) ()
   put newState = do
     stateRef <- ask                       -- ask for the state ref
     liftIO (writeIORef stateRef newState) -- write the new state

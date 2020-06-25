@@ -9,6 +9,7 @@ module Main where
 
 import qualified Data.Text as T
 import qualified Money as Y
+import qualified Data.Map as M
 
 import           Control.Monad.Logger (runStdoutLoggingT)
 import           Control.Monad.IO.Class
@@ -46,11 +47,21 @@ main :: IO ()
 --              Success accounts -> compositeBehavior accounts "0123456789" 
 --              Failure e        -> (error . show) e
 
+-- main = runMigrateActions >>
+--            openNewAccounts >>= \case
+--              Success accounts -> do
+--                  stateRef <- newIORef zeroDollars
+--                  runApp (updateTaxProfile accounts :: AppState MoneyUSD ()) stateRef
+--                  endState <- readIORef stateRef
+--                  print endState
+-- 
+--              Failure e        -> (error . show) e
+
 main = runMigrateActions >>
            openNewAccounts >>= \case
              Success accounts -> do
-                 stateRef <- newIORef zeroDollars
-                 runApp (updateTaxProfile accounts :: AppState MoneyUSD ()) stateRef
+                 stateRef <- newIORef M.empty
+                 runApp (buildAccountTaxProfile accounts :: AppState (M.Map T.Text MoneyUSD) ()) stateRef
                  endState <- readIORef stateRef
                  print endState
 
