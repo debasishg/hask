@@ -26,6 +26,8 @@ ghc-options:
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
 - -fplugin=Polysemy.Plugin
+- -fwrite-ide-info
+- -hiedir=.hie
 
 dependencies:
 - base >= 4.7 && < 5

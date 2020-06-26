@@ -14,24 +14,24 @@ newtype Env
     = Env {envPath :: [Text]}
     deriving (Show, Eq)
 
-data Error = Error { errPath :: [Text], errInfo :: ErrorInfo }
+data Error = Error { errPath :: ![Text], errInfo :: !ErrorInfo }
     deriving (Show, Eq)
 data ErrorInfo
-    = JSONBadValue Text Value
-    | JSONMissingKey Text
-    | InvalidDateValueInJSON Text
-    | InvalidMoneyValueInJSON Text
-    | InvalidAccountNumber Text 
-    | InvalidAccountName Text
-    | InvalidAccountOpenDate Text
-    | InvalidAccountOpenCloseDateCombination Text
-    | AccountBalanceLessThanMinimumBalance Text
-    | AccountAlreadyClosed Text UTCTime
-    | InsufficientFundsInAccount Text
-    | InvalidAccountType Text
+    = JSONBadValue !Text !Value
+    | JSONMissingKey !Text
+    | InvalidDateValueInJSON !Text
+    | InvalidMoneyValueInJSON !Text
+    | InvalidAccountNumber !Text 
+    | InvalidAccountName !Text
+    | InvalidAccountOpenDate !Text
+    | InvalidAccountOpenCloseDateCombination !Text
+    | AccountBalanceLessThanMinimumBalance !Text
+    | AccountAlreadyClosed !Text !UTCTime
+    | InsufficientFundsInAccount !Text
+    | InvalidAccountType !Text
     | RateNotApplicableForCheckingAccount
-    | InvalidTransactionType Text
-    | InvalidTransactionDate Text
-    | TransactionAmountNegative Text
+    | InvalidTransactionType !Text
+    | InvalidTransactionDate !Text
+    | TransactionAmountNegative !Text
     deriving (Show, Eq)
 

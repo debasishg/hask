@@ -56,9 +56,9 @@ import           Repository.AccountRepository
 
 -- | Some of the actions that can be done on an account, e.g. debit, credit,
 -- | close, open, reopen etc.
-data AccountAction = Debit (Y.Dense "USD") 
-                   | Credit (Y.Dense "USD") 
-                   | Close UTCTime
+data AccountAction = Debit !(Y.Dense "USD") 
+                   | Credit !(Y.Dense "USD") 
+                   | Close !UTCTime
                    deriving (Show, Read)
 
 -- | a combinator for composing various actions on an Account
