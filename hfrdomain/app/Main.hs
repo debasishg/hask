@@ -11,20 +11,31 @@ import qualified Data.Text as T
 import qualified Money as Y
 import qualified Data.Map as M
 
-import           Control.Monad.Logger (runStdoutLoggingT)
-import           Control.Monad.IO.Class
-import           Database.Persist.Sqlite (withSqlitePool)
-import           Database.Redis (checkedConnect, defaultConnectInfo)
-import           Validation (Validation (..))
-import           Data.Time
-import           Data.IORef
+import Control.Monad.Logger (runStdoutLoggingT)
+import Control.Monad.IO.Class ( MonadIO(liftIO) )
+import Database.Persist.Sqlite (withSqlitePool)
+import Database.Redis (checkedConnect, defaultConnectInfo)
+import Validation (Validation (..))
+import Data.Time ( getCurrentTime )
+import Data.IORef ( newIORef, readIORef )
 
-import           Model.Account
-import           Model.Schema
-import           Model.TransactionType
-import           Service.AccountService
-import           Service.Banking
-import           AppState
+import Model.Account ( Account )
+import Model.Schema ( MoneyUSD )
+import Model.TransactionType ( TransactionType(Dr, Cr) )
+import Service.AccountService
+    ( addAccounts,
+      insertOrUpdate,
+      openNewAccounts,
+      query,
+      runActionsForAccountNo,
+      runMigrateActions,
+      transferInUSD,
+      AccountAction(Credit) )
+import Service.Banking
+    ( buildAccountTaxProfile,
+      netValueTransactionsForAccount,
+      transact )
+import AppState ( AppState(runApp) )
 
 connectionString :: T.Text
 connectionString = "/tmp/domain.db"

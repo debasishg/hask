@@ -1,7 +1,7 @@
 module Combinators where
 
 import qualified Control.Category as C
-import           Control.Monad.Reader
+import Control.Monad.Reader ( (>=>) )
 
 -- | This is a generic pattern of processing a list of monadic functions through
 -- `(>>=)`. `composeParts` just composes the Kleisli arrows through a `foldr`. 

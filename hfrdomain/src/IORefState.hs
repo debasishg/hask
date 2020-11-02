@@ -8,10 +8,11 @@
 
 module IORefState where
 
-import           Control.Monad.IO.Class
-import           Control.Monad.Reader
-import           Control.Monad.State
-import           Data.IORef
+import Control.Monad.IO.Class ( MonadIO(..) )
+import Control.Monad.Reader ( void, MonadReader(ask) )
+import Control.Monad.State
+    ( MonadState(get, put) )
+import Data.IORef ( IORef, readIORef )
 -- import           Data.Kind (Type)
 
 -- type IORefState :: Type -> forall k. (k -> Type) -> (k -> Type)

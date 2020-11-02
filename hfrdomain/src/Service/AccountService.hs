@@ -35,24 +35,34 @@ module Service.AccountService
 import qualified Data.Text as T
 import qualified Money as Y
 
-import           Data.Pool
-import           Data.Text hiding (map, foldr)
-import           Data.Aeson.QQ (aesonQQ)
-import           Data.Time
-import           Control.Arrow
-import           Control.Lens
-import           Polysemy          
-import           Polysemy.Input          
-import           Database.Persist.Sqlite (SqlBackend, runMigration)
-import           Data.List.NonEmpty hiding (map)
-import           Validation (Validation (..), validationToEither)
+import Data.Pool ( Pool )
+import Data.Text ( Text )
+import Data.Aeson.QQ (aesonQQ)
+import Data.Time ( UTCTime, getCurrentTime )
+import Control.Arrow ( Kleisli(Kleisli, runKleisli) )
+import Control.Lens ( (&), (%~) )
+import Polysemy ( Sem, runM, Embed )          
+import Polysemy.Input ( Input, runInputConst )          
+import Database.Persist.Sqlite (SqlBackend, runMigration)
+import Data.List.NonEmpty ( NonEmpty )
+import Validation (Validation (..), validationToEither)
 
-import           Model.Account
-import           Model.Schema
-import           Errors
-import           Combinators
-import           Repository.SqliteUtils (runSqliteAction)
-import           Repository.AccountRepository
+import Model.Account
+    ( Account, balanceInCurrency, close, credit, debit, makeAccount )
+import Model.Schema ( currentBalance, migrateAll )
+import Errors ( ErrorInfo )
+import Combinators ( flattenAndCompose )
+import Repository.SqliteUtils (runSqliteAction)
+import Repository.AccountRepository
+    ( allAccounts,
+      queryAccount,
+      queryByOpenDate,
+      runAccountRepository,
+      store,
+      storeMany,
+      upsert,
+      upsertMany,
+      AccountRepository )
 
 -- | Some of the actions that can be done on an account, e.g. debit, credit,
 -- | close, open, reopen etc.

@@ -10,14 +10,14 @@
 module Repository.AccountCache where
 
 import qualified Data.Text as T
-import           Control.Monad (void)
-import           Data.ByteString.Char8 (pack, unpack)
-import           Polysemy          
-import           Polysemy.Input
-import           Database.Redis (Redis, get, setex, del, runRedis, Connection)
-import           Control.Lens
+import Control.Monad (void)
+import Data.ByteString.Char8 (pack, unpack)
+import Polysemy ( Sem, embed, Embed, Members, interpret, makeSem )          
+import Polysemy.Input ( Input, input )
+import Database.Redis (Redis, get, setex, del, runRedis, Connection)
+import Control.Lens ( (^.) )
 
-import           Model.Account
+import Model.Account ( accountNo, Account )
 
 data AccountCache m a where
     CacheAccount         :: Account -> AccountCache m ()

@@ -12,17 +12,19 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Money as Y
 import qualified Data.HashMap.Strict as M
 
-import           Data.Text
-import           Data.Aeson (Value(..), decode, Object)
-import           Data.Time
-import           Data.Text.Encoding (encodeUtf8)
-import           Data.Scientific (Scientific, toBoundedRealFloat)
-import           Money.Aeson()
-import           GHC.TypeLits (KnownSymbol)
-import           Validation (Validation (..), failure, validationToEither, eitherToValidation)
-import           Data.List.NonEmpty
+import Data.Text ( Text )
+import Data.Aeson (Value(..), decode, Object)
+import Data.Time ( UTCTime )
+import Data.Text.Encoding (encodeUtf8)
+import Data.Scientific (Scientific, toBoundedRealFloat)
+import Money.Aeson()
+import GHC.TypeLits (KnownSymbol)
+import Validation (Validation (..), failure, validationToEither, eitherToValidation)
+import Data.List.NonEmpty ( NonEmpty )
 
 import Errors
+    ( ErrorInfo(JSONMissingKey, InvalidDateValueInJSON,
+                InvalidMoneyValueInJSON, JSONBadValue) )
 
 asString :: Value -> Validation (NonEmpty ErrorInfo) Text
 asString = \case { String s -> Success s;

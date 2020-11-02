@@ -3,24 +3,34 @@
 module Service.TransactionService where
 
 import qualified Money as Y
-import           Data.Text hiding (foldl')
-import           Data.Time
-import           Data.Maybe
-import           Data.Foldable
-import           Data.Aeson (Value(..))
-import           Data.Pool
-import           Data.List.NonEmpty
-import           Control.Lens hiding (element)
-import           Database.Persist.Sqlite (SqlBackend)
-import           Polysemy          
-import           Polysemy.Input          
-import           Validation (Validation (..))
+import Data.Text ( Text )
+import Data.Time
+    ( UTCTime(UTCTime), fromGregorianValid, getCurrentTime )
+import Data.Maybe ( fromJust )
+import Data.Foldable ( Foldable(foldl') )
+import Data.Aeson (Value(..))
+import Data.Pool ( Pool )
+import Data.List.NonEmpty ( NonEmpty )
+import Control.Lens ( (&), (^.) )
+import Database.Persist.Sqlite (SqlBackend)
+import Polysemy ( Sem, runM, Embed )          
+import Polysemy.Input ( Input, runInputConst )          
+import Validation (Validation (..))
 
-import           Model.Transaction
-import           Model.TransactionType
-import           Model.Schema
-import           Repository.TransactionRepository
-import           Errors
+import Model.Transaction
+    ( Transaction, makeTransactionFromContext )
+import Model.TransactionType ( TransactionType(Cr) )
+import Model.Schema
+    ( transactionAmount, transactionType )
+import Repository.TransactionRepository
+    ( queryByAccount,
+      queryByAccountNTransactionDateRange,
+      queryByTransactionDate,
+      runTransactionRepository,
+      store,
+      storeMany,
+      TransactionRepository )
+import Errors ( ErrorInfo )
 
 zeroDollars :: Y.Dense "USD"
 zeroDollars = 0 :: Y.Dense "USD"

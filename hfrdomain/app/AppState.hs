@@ -11,13 +11,14 @@
 module AppState where
 
 import qualified Data.Map as M
-import           Control.Monad.IO.Class
-import           Control.Monad.Reader
-import           Control.Monad.State
-import           Data.IORef
-import           Data.Text hiding (foldl')
+import Control.Monad.IO.Class ( MonadIO(..) )
+import Control.Monad.Reader
+    ( MonadReader(ask), ReaderT(ReaderT) )
+import Control.Monad.State ( MonadState(get, put) )
+import Data.IORef ( IORef, readIORef, writeIORef )
+import Data.Text ( Text )
 
-import           Model.Schema
+import Model.Schema ( MoneyUSD )
 
 -- We define a type that abstracts an application state. We don't use
 -- the `State` monad and instead use an `IORef`. Note `IORef` is safe

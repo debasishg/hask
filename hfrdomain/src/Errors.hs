@@ -6,9 +6,9 @@
 
 module Errors where
 
-import Data.Text
+import Data.Text ( Text )
 import Data.Aeson (Value(..))
-import Data.Time
+import Data.Time ( UTCTime )
 
 newtype Env
     = Env {envPath :: [Text]}

@@ -20,16 +20,19 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
 
-import           Data.Time
-import           Data.Text.Encoding (encodeUtf8)
-import           Data.Aeson (Value(..), decode)
-import           Validation (Validation (..), failure, failureIf)
-import           Data.List.NonEmpty
+import Data.Time ( UTCTime )
+import Data.Text.Encoding (encodeUtf8)
+import Data.Aeson (Value(..), decode)
+import Validation (Validation (..), failure, failureIf)
+import Data.List.NonEmpty ( NonEmpty, head )
 
-import           Model.ValidateAeson
-import           Model.Schema
-import           Model.TransactionType
-import           Errors
+import Model.ValidateAeson
+    ( asDate, asMoney, asString, withKey, withObject )
+import Model.Schema ( makeFullTransaction, Transaction )
+import Model.TransactionType ( TransactionType )
+import Errors
+    ( ErrorInfo(TransactionAmountNegative, InvalidTransactionType,
+                JSONBadValue, InvalidAccountNumber, InvalidTransactionDate) )
 
 -- | Smart constructor for making a Transaction from JSON data
 makeTransactionFromContext :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Transaction

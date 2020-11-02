@@ -26,8 +26,8 @@ ghc-options:
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
 - -fplugin=Polysemy.Plugin
-- -fwrite-ide-info
-- -hiedir=.hie
+# - -fwrite-ide-info    ## needed for Stan
+# - -hiedir=.hie        ## needed for Stan
 
 dependencies:
 - base >= 4.7 && < 5

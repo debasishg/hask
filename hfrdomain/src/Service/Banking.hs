@@ -9,26 +9,36 @@ module Service.Banking where
 
 import qualified Money as Y
 import qualified Data.Map as M
-import           Data.Text hiding (foldl')
-import           Data.Foldable
-import           Data.Pool
-import           Data.Time
-import           Data.Maybe (fromJust)
-import           Validation (Validation (..) )
-import           Polysemy
-import           Polysemy.Input
-import           Control.Applicative
-import           Control.Monad.Trans.Maybe 
-import           Control.Monad.State
-import           Control.Lens hiding (element)
-import           Database.Persist.Sqlite (SqlBackend)
-import           Database.Redis (Connection)
+import Data.Text ( Text )
+import Data.Foldable ( Foldable(foldl', null) )
+import Data.Pool ( Pool )
+import Data.Time ( UTCTime )
+import Data.Maybe (fromJust)
+import Validation (Validation (..) )
+import Polysemy ( Sem, runM, Embed )
+import Polysemy.Input ( Input, runInputConst )
+import Control.Applicative ( Alternative((<|>)) )
+import Control.Monad.Trans.Maybe ( MaybeT(MaybeT, runMaybeT) ) 
+import Control.Monad.State ( MonadState(put, get), modify )
+import Control.Lens ( (&), (^.), (%~) )
+import Database.Persist.Sqlite (SqlBackend)
+import Database.Redis (Connection)
 
-import           Model.Schema
-import           Model.Account (isAccountClosed, balanceInCurrency)
-import           Model.Transaction (makeTransaction)
-import           Model.TransactionType
-import           Model.AccountType
+import Model.Schema
+    ( accountNo,
+      accountType,
+      currentBalance,
+      transactionAccountNo,
+      transactionAmount,
+      transactionType,
+      Account,
+      MoneyUSD,
+      Transaction )
+import Model.Account (isAccountClosed, balanceInCurrency)
+import Model.Transaction (makeTransaction)
+import Model.TransactionType ( TransactionType(..) )
+import Model.AccountType ( AccountType(Ch) )
+
 import qualified Repository.AccountRepository as AR
 import qualified Repository.TransactionRepository as TR
 import qualified Repository.AccountCache as AC

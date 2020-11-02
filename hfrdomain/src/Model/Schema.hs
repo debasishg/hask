@@ -18,15 +18,21 @@ module Model.Schema where
 
 import qualified Money as Y
 
-import           Data.Time
-import           Data.Text (Text)
-import           Money.Aeson()
-import           Database.Persist (Key, Entity(..))
-import           Database.Persist.TH 
+import Data.Time ( UTCTime )
+import Data.Text (Text)
+import Money.Aeson()
+import Database.Persist (Key, Entity(..))
+import Database.Persist.TH
+    ( mkMigrate,
+      mkPersist,
+      persistLowerCase,
+      share,
+      sqlSettings,
+      MkPersistSettings(mpsGenerateLenses, mpsPrefixFields) ) 
 
-import           Model.AccountType
-import           Model.TransactionType
-import           Model.PersistentMoney()
+import Model.AccountType ( AccountType )
+import Model.TransactionType ( TransactionType )
+import Model.PersistentMoney()
 
 type MoneyUSD = (Y.Dense "USD")
 

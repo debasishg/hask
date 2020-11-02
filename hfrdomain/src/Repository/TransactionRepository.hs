@@ -17,19 +17,24 @@ module Repository.TransactionRepository where
 
 import qualified Data.Text as T
 import qualified Data.Map  as M
-import           Data.Int (Int64)
-import           Data.Time
-import           Data.Pool
-import           Polysemy          
-import           Polysemy.Input          
 import qualified Polysemy.State as S
-import           Database.Persist.Sqlite (SqlBackend)
-import           Database.Persist (insert_, insertMany_, selectList, (==.), (>=.), (<=.))
-import           Control.Lens
 
-import           Model.Transaction
-import           Model.Schema
-import           Repository.SqliteUtils
+import Data.Int (Int64)
+import Data.Time ( UTCTime )
+import Data.Pool ( Pool )
+import Polysemy ( Member, Sem, Embed, Members, interpret, makeSem )          
+import Polysemy.Input ( Input )          
+import Database.Persist.Sqlite (SqlBackend)
+import Database.Persist (insert_, insertMany_, selectList, (==.), (>=.), (<=.))
+import Control.Lens ( (^.) )
+
+import Model.Transaction ( Transaction )
+import Model.Schema
+    ( EntityField(TransactionAccountNo, TransactionDate),
+      transactionAccountNo,
+      transactionDate,
+      unEntity )
+import Repository.SqliteUtils ( runDB )
 
 -- | Repository abstraction that's independent of the underlying database 
 -- representation

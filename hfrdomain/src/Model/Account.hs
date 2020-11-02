@@ -26,18 +26,33 @@ module Model.Account
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
-import           Data.Aeson (Value(..), decode)
-import           Validation (Validation (..), failure, failureIf)
-import           Data.List.NonEmpty
-import           Data.Text.Encoding (encodeUtf8)
-import           Data.Time
-import           Data.Maybe (isNothing, fromJust)
-import           Control.Lens hiding (element)
+import Data.Aeson (Value(..), decode)
+import Validation (Validation (..), failure, failureIf)
+import Data.List.NonEmpty ( NonEmpty, head )
+import Data.Text.Encoding (encodeUtf8)
+import Data.Time ( UTCTime, diffUTCTime, NominalDiffTime )
+import Data.Maybe (isNothing, fromJust)
+import Control.Lens ( (&), (^.), lens, (%~), (?~), Lens' )
 
-import           Model.Schema
-import           Model.AccountType
-import           Model.ValidateAeson
-import           Errors
+import Model.Schema
+    ( accountCloseDate,
+      accountNo,
+      accountOpenDate,
+      accountType,
+      currentBalance,
+      makeFullAccount,
+      rateOfInterest,
+      Account )
+import Model.AccountType ( AccountType(..) )
+import Model.ValidateAeson
+    ( asDate, asDouble, asMoney, asString, withKey, withObject )
+import Errors
+    ( Env(..),
+      ErrorInfo(InsufficientFundsInAccount,
+                InvalidAccountOpenCloseDateCombination, InvalidAccountNumber,
+                InvalidAccountType, JSONBadValue, InvalidAccountName,
+                InvalidAccountOpenDate, AccountBalanceLessThanMinimumBalance,
+                RateNotApplicableForCheckingAccount, AccountAlreadyClosed) )
 
 makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
 makeAccount currentTime req = case _makeAccount currentTime req of

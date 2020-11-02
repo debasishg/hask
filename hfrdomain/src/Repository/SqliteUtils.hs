@@ -4,16 +4,16 @@
 
 module Repository.SqliteUtils where
 
-import           Control.Monad.Logger (runStdoutLoggingT, LoggingT,
+import Control.Monad.Logger (runStdoutLoggingT, LoggingT,
                                        LogLevel(..), filterLogger, MonadLogger)
-import           Control.Monad.Reader (runReaderT)
-import           Data.Pool
-import           Database.Persist.Sqlite (withSqliteConn, runMigration, SqlPersistT, SqlBackend, runSqlPool)
-import           Control.Monad.IO.Unlift (MonadUnliftIO)
-import           Polysemy          
-import           Polysemy.Input          
+import Control.Monad.Reader (runReaderT)
+import Data.Pool ( Pool )
+import Database.Persist.Sqlite (withSqliteConn, runMigration, SqlPersistT, SqlBackend, runSqlPool)
+import Control.Monad.IO.Unlift (MonadUnliftIO)
+import Polysemy ( Sem, embed, Embed, Members )          
+import Polysemy.Input ( Input, input )          
 
-import           Model.Schema
+import Model.Schema ( migrateAll )
 
 logFilter :: a -> LogLevel -> Bool
 logFilter _ LevelError     = True

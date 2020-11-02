@@ -17,17 +17,21 @@ module Repository.AccountRepository where
 import qualified Data.Text as T
 import qualified Data.Map  as M
 import qualified Polysemy.State as S
-import           Data.Pool
-import           Data.Time
-import           Control.Lens
-import           Polysemy          
-import           Polysemy.Input          
-import           Database.Persist (get, insert_, insertMany_, repsert, repsertMany, selectList, (==.))
-import           Database.Persist.Sqlite (SqlBackend)
+import Data.Pool ( Pool )
+import Data.Time ( UTCTime )
+import Control.Lens ( (^.) )
+import Polysemy ( Member, Sem, Embed, Members, interpret, makeSem )          
+import Polysemy.Input ( Input )          
+import Database.Persist (get, insert_, insertMany_, repsert, repsertMany, selectList, (==.))
+import Database.Persist.Sqlite (SqlBackend)
 
-import           Model.Account
-import           Model.Schema
-import           Repository.SqliteUtils
+import Model.Account ( accountNo, accountOpenDate, Account )
+import Model.Schema
+    ( EntityField(AccountOpenDate),
+      Key(AccountKey),
+      unEntity,
+      AccountKey )
+import Repository.SqliteUtils ( runDB )
 
 -- | Repository abstraction that's independent of the underlying database 
 -- representation

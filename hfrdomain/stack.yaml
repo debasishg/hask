@@ -14,5 +14,6 @@ extra-deps:
 - validation-selective-0.0.0.0
 
 # resolver: nightly-2020-03-01
-resolver: lts-16.1
-# compiler: ghc-8.8.2
+# resolver: lts-16.1
+resolver: lts-16.20
+# compiler: ghc-8.8.4
