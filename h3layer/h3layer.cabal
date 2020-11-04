@@ -1,0 +1,79 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: ba2e33730cdac1bd356939be211ed426765132b7e2c7dcfb7885c92543bd217e
+
+name:           h3layer
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/h3layer#readme>
+homepage:       https://github.com/githubuser/h3layer#readme
+bug-reports:    https://github.com/githubuser/h3layer/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2020 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/h3layer
+
+library
+  exposed-modules:
+      Lib
+      Lib.App.Env
+      Lib.App.Error
+      Prelude
+  other-modules:
+      Paths_h3layer
+  hs-source-dirs:
+      src
+  default-extensions: BangPatterns ConstraintKinds DataKinds DeriveGeneric DerivingStrategies DerivingVia FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses OverloadedStrings OverloadedLabels RecordWildCards ScopedTypeVariables TypeApplications TypeFamilies TypeOperators
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wpartial-fields
+  build-depends:
+      aeson
+    , base-noprelude
+    , bytestring
+    , co-log
+    , lens
+    , mtl
+    , postgresql-simple
+    , postgresql-simple-named
+    , proto-lens
+    , proto-lens-protoc
+    , proto-lens-runtime
+    , relude
+    , resource-pool
+    , text
+  default-language: Haskell2010
+
+executable h3layer-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_h3layer
+  hs-source-dirs:
+      app
+  default-extensions: BangPatterns ConstraintKinds DataKinds DeriveGeneric DerivingStrategies DerivingVia FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses OverloadedStrings OverloadedLabels RecordWildCards ScopedTypeVariables TypeApplications TypeFamilies TypeOperators
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      h3layer
+  default-language: Haskell2010
+
+test-suite h3layer-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_h3layer
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      h3layer
+  default-language: Haskell2010

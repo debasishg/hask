@@ -1,0 +1,109 @@
+name:                h3layer
+version:             0.1.0.0
+github:              "githubuser/h3layer"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2020 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/h3layer#readme>
+
+# dependencies:
+# - base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+
+  dependencies:
+    - base-noprelude 
+    - relude 
+    - resource-pool
+    - postgresql-simple 
+    - postgresql-simple-named 
+    - co-log 
+    - mtl 
+    - text
+    - bytestring
+    - lens
+    - proto-lens
+    - proto-lens-protoc
+    - proto-lens-runtime
+    - aeson
+
+  default-extensions:
+    - BangPatterns
+    - ConstraintKinds
+    - DataKinds
+    - DeriveGeneric
+    - DerivingStrategies
+    - DerivingVia
+    - FlexibleContexts
+    - FlexibleInstances
+    - GeneralizedNewtypeDeriving
+    - InstanceSigs
+    - KindSignatures
+    - LambdaCase
+    - MultiParamTypeClasses
+    - OverloadedStrings
+    - OverloadedLabels
+    - RecordWildCards
+    - ScopedTypeVariables
+    - TypeApplications
+    - TypeFamilies
+    - TypeOperators
+
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wpartial-fields
+
+executables:
+  h3layer-exe:
+    main:                Main.hs
+    source-dirs:         app
+    default-extensions:
+      - BangPatterns
+      - ConstraintKinds
+      - DataKinds
+      - DeriveGeneric
+      - DerivingStrategies
+      - DerivingVia
+      - FlexibleContexts
+      - FlexibleInstances
+      - GeneralizedNewtypeDeriving
+      - InstanceSigs
+      - KindSignatures
+      - LambdaCase
+      - MultiParamTypeClasses
+      - OverloadedStrings
+      - OverloadedLabels
+      - RecordWildCards
+      - ScopedTypeVariables
+      - TypeApplications
+      - TypeFamilies
+      - TypeOperators
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - h3layer
+
+tests:
+  h3layer-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - h3layer
