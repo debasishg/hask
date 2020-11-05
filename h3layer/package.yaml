@@ -25,6 +25,16 @@ description:         Please see the README on GitHub at <https://github.com/gith
 library:
   source-dirs: src
 
+  exposed-modules:
+    - Prelude
+    - Lib
+    - Lib.App
+    - Lib.App.Env
+    - Lib.App.Error
+    - Lib.App.Monad
+    - Lib.Effects.Log
+
+
   dependencies:
     - base-noprelude 
     - relude 

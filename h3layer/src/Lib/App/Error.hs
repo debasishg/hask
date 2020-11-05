@@ -1,6 +1,12 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Lib.App.Error where
+module Lib.App.Error
+       ( AppError (..)
+       , AppErrorType
+       , AppException (..)
+       , WithError
+       , throwError
+       )  where
 
 import PgNamed (PgNamedError)
 import Control.Monad.Except (MonadError)

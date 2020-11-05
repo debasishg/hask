@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ba2e33730cdac1bd356939be211ed426765132b7e2c7dcfb7885c92543bd217e
+-- hash: fc01e35c9ed29a0fb68b5dd228594e447f0318523715cdbd7afa4065394dd79c
 
 name:           h3layer
 version:        0.1.0.0
@@ -27,10 +27,13 @@ source-repository head
 
 library
   exposed-modules:
+      Prelude
       Lib
+      Lib.App
       Lib.App.Env
       Lib.App.Error
-      Prelude
+      Lib.App.Monad
+      Lib.Effects.Log
   other-modules:
       Paths_h3layer
   hs-source-dirs:

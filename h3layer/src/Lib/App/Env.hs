@@ -1,7 +1,14 @@
 {-# LANGUAGE AllowAmbiguousTypes  #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Lib.App.Env where
+module Lib.App.Env
+       ( Env (..)
+       , Has (..)
+       , grab
+
+         -- * Type aliases for 'Env' fields
+       , DbPool
+       )  where
 
 import Data.Pool (Pool)
 import Database.PostgreSQL.Simple (Connection)
