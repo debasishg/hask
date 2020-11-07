@@ -16,10 +16,19 @@ import Colog (HasLog (..), Message)
 
 type DbPool = Pool Connection
 
+-- | The environment of the application
 data Env (m :: Type -> Type) = Env
     { envDbPool        :: !DbPool
     , envLogAction     :: !(LogAction m Message)
     }
+
+-- class HasLog env msg m where
+--     getLogAction :: env -> LogAction m msg
+--     setLogAction :: LogAction m msg -> env -> env
+-- 
+-- instance HasLog (LogAction m msg) msg m where
+--     getLogAction = id
+--     setLogAction = const
 
 instance HasLog (Env m) Message m where
     getLogAction :: Env m -> LogAction m Message

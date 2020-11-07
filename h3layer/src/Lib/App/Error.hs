@@ -6,7 +6,27 @@ module Lib.App.Error
        , AppException (..)
        , WithError
        , throwError
-       )  where
+
+         -- * Error checks
+       , isServerError
+       , isNotAllowed
+       , isInvalid
+
+         -- * Internal error helpers
+       , notFound
+       , serverError
+       , notAllowed
+       , invalid
+       , dbError
+       , dbNamedError
+       , limitError
+
+         -- * Error throwing helpers
+       , throwOnNothing
+       , throwOnNothingM
+       , notFoundOnNothing
+       , notFoundOnNothingM
+       ) where
 
 import PgNamed (PgNamedError)
 import Control.Monad.Except (MonadError)
@@ -81,3 +101,66 @@ data IError
     -- | Limits on the multi-request are overflowed.
     | LimitError
     deriving (Show, Eq)
+
+----------------------------------------------------------------------------
+-- Error checks
+----------------------------------------------------------------------------
+
+isServerError :: AppErrorType -> Bool
+isServerError (InternalError (ServerError _)) = True
+isServerError _                               = False
+
+isNotAllowed :: AppErrorType -> Bool
+isNotAllowed (InternalError (NotAllowed _)) = True
+isNotAllowed _                              = False
+
+isInvalid :: AppErrorType -> Bool
+isInvalid (InternalError (Invalid _)) = True
+isInvalid _                           = False
+
+----------------------------------------------------------------------------
+-- Internal Error helpers
+----------------------------------------------------------------------------
+
+notFound :: AppErrorType
+notFound = InternalError NotFound
+
+serverError :: Text -> AppErrorType
+serverError = InternalError . ServerError
+
+notAllowed :: Text -> AppErrorType
+notAllowed = InternalError . NotAllowed
+
+invalid :: Text -> AppErrorType
+invalid = InternalError . Invalid
+
+dbError :: Text -> AppErrorType
+dbError = InternalError . DbError
+
+dbNamedError :: PgNamedError -> AppErrorType
+dbNamedError = InternalError . DbNamedError
+
+limitError :: AppErrorType
+limitError = InternalError LimitError
+
+----------------------------------------------------------------------------
+-- Helpers
+----------------------------------------------------------------------------
+
+-- | Extract the value from a maybe, throwing the given 'AppError' if
+-- the value does not exist
+throwOnNothing :: WithError m => AppErrorType -> Maybe a -> m a
+throwOnNothing err = withFrozenCallStack . maybe (throwError err) pure
+
+-- | Extract the value from a 'Maybe' in @m@, throwing the given 'AppError' if
+-- the value does not exist
+throwOnNothingM :: WithError m => AppErrorType -> m (Maybe a) -> m a
+throwOnNothingM err action = withFrozenCallStack $ action >>= throwOnNothing err
+
+-- | Similar to 'throwOnNothing' but throws a 'NotFound' if the value does not exist
+notFoundOnNothing :: WithError m => Maybe a -> m a
+notFoundOnNothing = withFrozenCallStack . throwOnNothing notFound
+
+-- | Similar to 'throwOnNothingM' but throws a 'NotFound' if the value does not exist
+notFoundOnNothingM :: WithError m => m (Maybe a) -> m a
+notFoundOnNothingM = withFrozenCallStack . throwOnNothingM notFound

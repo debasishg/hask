@@ -50,6 +50,8 @@ library:
     - proto-lens-protoc
     - proto-lens-runtime
     - aeson
+    - bcrypt
+    - tomland
 
   default-extensions:
     - BangPatterns

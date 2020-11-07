@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fc01e35c9ed29a0fb68b5dd228594e447f0318523715cdbd7afa4065394dd79c
+-- hash: d93fbae28bd118b7ad292853a74f7046e4f489e70bf5648eefdb5c6091e4b555
 
 name:           h3layer
 version:        0.1.0.0
@@ -35,6 +35,16 @@ library
       Lib.App.Monad
       Lib.Effects.Log
   other-modules:
+      Lib.Config
+      Lib.Core.Admin
+      Lib.Core.Email
+      Lib.Core.Id
+      Lib.Core.Password
+      Lib.Core.User
+      Lib.Db
+      Lib.Db.Functions
+      Lib.Db.Schema
+      Lib.Db.User
       Paths_h3layer
   hs-source-dirs:
       src
@@ -43,6 +53,7 @@ library
   build-depends:
       aeson
     , base-noprelude
+    , bcrypt
     , bytestring
     , co-log
     , lens
@@ -55,6 +66,7 @@ library
     , relude
     , resource-pool
     , text
+    , tomland
   default-language: Haskell2010
 
 executable h3layer-exe
