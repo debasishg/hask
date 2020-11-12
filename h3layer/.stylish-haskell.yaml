@@ -6,7 +6,7 @@ steps:
 
   # Import cleanup
   - imports:
-      align: none
+      align: group
       list_align: after_alias
       pad_module_names: false
       long_list_align: inline

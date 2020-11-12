@@ -22,6 +22,28 @@ description:         Please see the README on GitHub at <https://github.com/gith
 # dependencies:
 # - base >= 4.7 && < 5
 
+default-extensions:
+  - BangPatterns
+  - ConstraintKinds
+  - DataKinds
+  - DeriveGeneric
+  - DerivingStrategies
+  - DerivingVia
+  - FlexibleContexts
+  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
+  - KindSignatures
+  - LambdaCase
+  - MultiParamTypeClasses
+  - OverloadedStrings
+  - OverloadedLabels
+  - RecordWildCards
+  - ScopedTypeVariables
+  - TypeApplications
+  - TypeFamilies
+  - TypeOperators
+
 library:
   source-dirs: src
 
@@ -33,7 +55,6 @@ library:
     - Lib.App.Error
     - Lib.App.Monad
     - Lib.Effects.Log
-
 
   dependencies:
     - base-noprelude 
@@ -52,56 +73,22 @@ library:
     - aeson
     - bcrypt
     - tomland
+    - say
 
-  default-extensions:
-    - BangPatterns
-    - ConstraintKinds
-    - DataKinds
-    - DeriveGeneric
-    - DerivingStrategies
-    - DerivingVia
-    - FlexibleContexts
-    - FlexibleInstances
-    - GeneralizedNewtypeDeriving
-    - InstanceSigs
-    - KindSignatures
-    - LambdaCase
-    - MultiParamTypeClasses
-    - OverloadedStrings
-    - OverloadedLabels
-    - RecordWildCards
-    - ScopedTypeVariables
-    - TypeApplications
-    - TypeFamilies
-    - TypeOperators
-
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -fhide-source-paths -Wpartial-fields
+  ghc-options: 
+    - -Wall 
+    - -Wincomplete-uni-patterns 
+    - -Wincomplete-record-updates 
+    - -Wcompat 
+    - -Widentities 
+    - -Wredundant-constraints 
+    - -fhide-source-paths 
+    - -Wpartial-fields
 
 executables:
   h3layer-exe:
     main:                Main.hs
     source-dirs:         app
-    default-extensions:
-      - BangPatterns
-      - ConstraintKinds
-      - DataKinds
-      - DeriveGeneric
-      - DerivingStrategies
-      - DerivingVia
-      - FlexibleContexts
-      - FlexibleInstances
-      - GeneralizedNewtypeDeriving
-      - InstanceSigs
-      - KindSignatures
-      - LambdaCase
-      - MultiParamTypeClasses
-      - OverloadedStrings
-      - OverloadedLabels
-      - RecordWildCards
-      - ScopedTypeVariables
-      - TypeApplications
-      - TypeFamilies
-      - TypeOperators
     ghc-options:
     - -threaded
     - -rtsopts

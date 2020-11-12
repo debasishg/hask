@@ -1,28 +1,34 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Lib
        ( mkAppEnv
-       , runServer
        , main
        ) where
 
-import Lib.App (AppEnv, Env (..))
+import qualified Lib.Repository.UserRepo as UserRepo
+import qualified Lib.Service.UserService as UserService
+
+import Lib.App (App, AppEnv, Env (..), runApp)
 import Lib.Config (Config (..), loadConfig)
-import Lib.Db (initialisePool)
+import Lib.Core.Email (Email (..))
+import Lib.Db (getUser, getUserByEmail, initialisePool)
 import Lib.Effects.Log (mainLogAction)
 
--- import qualified Data.HashMap.Strict as HashMap
+
+instance UserRepo.UserRepo App where
+  getUserByEmail = Lib.Db.getUserByEmail
+
+instance UserService.UserService App where
+  getUser = Lib.Db.getUser
 
 mkAppEnv :: Config -> IO AppEnv
 mkAppEnv Config{..} = do
     -- IO configuration
     envDbPool   <- initialisePool cDbCredentials
-
     -- pure configuration
     let envLogAction = mainLogAction cLogSeverity
     pure Env{..}
 
-runServer :: AppEnv -> IO ()
-runServer env@Env{..} = do
-    pure ()
-
 main :: IO ()
-main = loadConfig >>= mkAppEnv >>= runServer
+main = loadConfig >>= mkAppEnv >>= flip runApp (getUser $ Email "dghosh@acm.org") >>= print

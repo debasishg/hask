@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d93fbae28bd118b7ad292853a74f7046e4f489e70bf5648eefdb5c6091e4b555
+-- hash: 006d24eb2cf00f491c5a5596b3f2c32014b1acab789ca7ce815fc6a247da723b
 
 name:           h3layer
 version:        0.1.0.0
@@ -45,6 +45,8 @@ library
       Lib.Db.Functions
       Lib.Db.Schema
       Lib.Db.User
+      Lib.Repository.UserRepo
+      Lib.Service.UserService
       Paths_h3layer
   hs-source-dirs:
       src
@@ -65,6 +67,7 @@ library
     , proto-lens-runtime
     , relude
     , resource-pool
+    , say
     , text
     , tomland
   default-language: Haskell2010
@@ -88,6 +91,7 @@ test-suite h3layer-test
       Paths_h3layer
   hs-source-dirs:
       test
+  default-extensions: BangPatterns ConstraintKinds DataKinds DeriveGeneric DerivingStrategies DerivingVia FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses OverloadedStrings OverloadedLabels RecordWildCards ScopedTypeVariables TypeApplications TypeFamilies TypeOperators
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       h3layer

@@ -4,13 +4,13 @@
 
 module Lib.Db.User
        ( getUserByEmail
+       , getUser
        ) where
 
 import Lib.App (WithError)
 import Lib.Core.Email (Email)
-import Lib.Core.User (User)
+import Lib.Core.User (User (..))
 import Lib.Db.Functions (WithDb, asSingleRow, queryNamed)
-
 
 getUserByEmail :: (WithDb env m, WithError m) => Email -> m User
 getUserByEmail email = asSingleRow $ queryNamed [sql|
@@ -18,3 +18,8 @@ getUserByEmail email = asSingleRow $ queryNamed [sql|
     FROM users
     WHERE email = LOWER(?email)
 |] [ "email" =? email ]
+
+getUser :: (WithDb env m, WithError m) => Email -> m Text
+getUser email = do
+  User {..} <- getUserByEmail email
+  return userName
