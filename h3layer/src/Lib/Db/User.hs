@@ -8,7 +8,7 @@ module Lib.Db.User
        ) where
 
 import Lib.App (WithError)
-import Lib.Core.Email (Email)
+import Lib.Core.Email (Email (..))
 import Lib.Core.User (User (..))
 import Lib.Db.Functions (WithDb, asSingleRow, queryNamed)
 
@@ -19,7 +19,8 @@ getUserByEmail email = asSingleRow $ queryNamed [sql|
     WHERE email = LOWER(?email)
 |] [ "email" =? email ]
 
-getUser :: (WithDb env m, WithError m) => Email -> m Text
+getUser :: (WithDb env m, WithError m, WithLog env m) => Email -> m Text
 getUser email = do
   User {..} <- getUserByEmail email
+  log D $ "Fetched user " <> userName <> " with email: " <> unEmail email
   return userName

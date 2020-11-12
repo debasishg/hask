@@ -1,18 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Lib
-       ( mkAppEnv
-       , main
-       ) where
+module Lib ( main ) where
 
 import qualified Lib.Repository.UserRepo as UserRepo
 import qualified Lib.Service.UserService as UserService
 
-import Lib.App (App, AppEnv, Env (..), runApp)
+import Lib.App (App, AppEnv, Env (..), runApp, WithError)
 import Lib.Config (Config (..), loadConfig)
 import Lib.Core.Email (Email (..))
-import Lib.Db (getUser, getUserByEmail, initialisePool)
+import Lib.Db (getUser, getUserByEmail, initialisePool, WithDb)
 import Lib.Effects.Log (mainLogAction)
 
 
@@ -30,5 +27,8 @@ mkAppEnv Config{..} = do
     let envLogAction = mainLogAction cLogSeverity
     pure Env{..}
 
+mkApp :: (WithDb env m, WithError m, WithLog env m) => Email -> m Text
+mkApp = getUser 
+
 main :: IO ()
-main = loadConfig >>= mkAppEnv >>= flip runApp (getUser $ Email "dghosh@acm.org") >>= print
+main = loadConfig >>= mkAppEnv >>= flip runApp (mkApp $ Email "dghosh@acm.org") >>= print
