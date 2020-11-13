@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 006d24eb2cf00f491c5a5596b3f2c32014b1acab789ca7ce815fc6a247da723b
+-- hash: eb9a0f86afd8f4bc6a7a4fd732c51b30243300be1ebc1753c1658cd62a750977
 
 name:           h3layer
 version:        0.1.0.0
@@ -44,8 +44,11 @@ library
       Lib.Db
       Lib.Db.Functions
       Lib.Db.Schema
-      Lib.Db.User
+      Lib.Repository
+      Lib.Repository.User
       Lib.Repository.UserRepo
+      Lib.Service
+      Lib.Service.User
       Lib.Service.UserService
       Paths_h3layer
   hs-source-dirs:

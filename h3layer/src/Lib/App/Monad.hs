@@ -3,7 +3,6 @@ module Lib.App.Monad
          App (..)
        , AppEnv
        , runAppAsIO
-       , runApp
        ) where
 
 import Control.Exception (catch, throwIO, try)

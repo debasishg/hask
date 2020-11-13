@@ -2,10 +2,8 @@
 
 -- | SQL queries to work with the @users@ table.
 
-module Lib.Db.User
-       ( getUserByEmail
-       , getUser
-       ) where
+module Lib.Repository.User
+       ( getUserByEmail ) where
 
 import Lib.App (WithError)
 import Lib.Core.Email (Email (..))
@@ -18,9 +16,3 @@ getUserByEmail email = asSingleRow $ queryNamed [sql|
     FROM users
     WHERE email = LOWER(?email)
 |] [ "email" =? email ]
-
-getUser :: (WithDb env m, WithError m, WithLog env m) => Email -> m Text
-getUser email = do
-  User {..} <- getUserByEmail email
-  log D $ "Fetched user " <> userName <> " with email: " <> unEmail email
-  return userName
