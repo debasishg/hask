@@ -101,7 +101,7 @@ transfer conn rconn fromAccountNo toAccountNo amount exchangeRateWithUSD =
               updateBalances <$> getAccount fromAccountNo <*> getAccount toAccountNo
                 where
                   getAccount = \ano -> runMaybeT $ 
-                        MaybeT (AR.queryAccount ano) 
+                        MaybeT (AC.fetchCachedAccount ano)
                     <|> MaybeT (AR.queryAccount ano)
 
                   updateBalances (Just fa) (Just ta)  = [fa & balanceInCurrency exchangeRateWithUSD %~ subtract amount, 
@@ -173,42 +173,45 @@ updateTaxProfile accounts = do
      | isChecking $ Prelude.head accounts  -> updateTaxProfile (Prelude.tail accounts)
      | otherwise                           -> modify (+ taxOnBalance (Prelude.head accounts)) >> updateTaxProfile (Prelude.tail accounts)
          where
-           taxOnBalance account = fromJust $ Y.dense $ (toRational $ (account ^. currentBalance)) * 0.1
+           taxOnBalance account = fromJust $ Y.dense $ toRational (account ^. currentBalance) * 0.1
            isChecking account = account ^. accountType == Ch
 
 -- | Build the tax deduction profile of accounts for the list of transactions
 -- | passed as input
 buildTxnTaxProfile :: MonadState (M.Map Text MoneyUSD) m => [Transaction] -> m ()
 buildTxnTaxProfile txns = do
-  if | Data.Foldable.null txns         -> return ()
-     | otherwise                       -> (do
-         st <- get
-         let txn = Prelude.head txns
-             ano = txnAccountNo txn
-         maybe 
-           (put (M.insert ano (taxOn txn) st)) 
-           (\_ -> (put (M.adjust (+ (taxOn txn)) ano st)))
-           (M.lookup ano st)) >> buildTxnTaxProfile (Prelude.tail txns)
+  (if Data.Foldable.null txns then
+       return ()
+   else
+       (do st <- get
+           let txn = Prelude.head txns
+               ano = txnAccountNo txn
+           maybe
+             (put (M.insert ano (taxOn txn) st))
+             (const (put (M.adjust (+ taxOn txn) ano st))) (M.lookup ano st))
+         >> buildTxnTaxProfile (Prelude.tail txns))
          where
            txnAccountNo txn = txn ^. transactionAccountNo
-           taxOn txn = fromJust $ Y.dense $ (toRational $ (txn ^. transactionAmount)) * 0.1
+           taxOn txn = fromJust $ Y.dense $ toRational (txn ^. transactionAmount) * 0.1
 
 -- | Build the tax deduction profile of accounts for the list of transactions
 -- | passed as input
 buildAccountTaxProfile :: MonadState (M.Map Text MoneyUSD) m => [Account] -> m ()
 buildAccountTaxProfile accounts = do
-  if | Data.Foldable.null accounts     -> return ()
-     | otherwise                       -> (do
-         st <- get
-         let account = Prelude.head accounts
-             ano = no account
-         maybe 
-           (put (M.insert ano (taxOn account) st)) 
-           (\_ -> (put (M.adjust (+ (taxOn account)) ano st)))
-           (M.lookup ano st)) >> buildAccountTaxProfile (Prelude.tail accounts)
+  (if Data.Foldable.null accounts then
+       return ()
+   else
+       (do st <- get
+           let account = Prelude.head accounts
+               ano = no account
+           maybe
+             (put (M.insert ano (taxOn account) st))
+             (const (put (M.adjust (+ taxOn account) ano st)))
+             (M.lookup ano st))
+         >> buildAccountTaxProfile (Prelude.tail accounts))
          where
            no account = account ^. accountNo
-           taxOn account = fromJust $ Y.dense $ (toRational $ (account ^. currentBalance)) * 0.1
+           taxOn account = fromJust $ Y.dense $ toRational (account ^. currentBalance) * 0.1
 
 -- | updates the current balance of an account from a 
 -- | list of transactions
