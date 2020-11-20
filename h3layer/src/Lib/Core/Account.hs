@@ -5,6 +5,8 @@ module Lib.Core.Account
        ) where
 
 import Data.Time ( UTCTime )
+import Lib.Core.Id (Id)
+import Lib.Core.User ( User )
 
 
 -- | Data type representing row in the @users@ table.
@@ -13,7 +15,7 @@ data Account = Account
     , accountName  :: !Text
     , openDate     :: !UTCTime 
     , closeDate    :: !(Maybe UTCTime)
-    , userId       :: !Text
+    , userId       :: !(Id User)
     } deriving stock (Generic, Show, Eq)
       deriving anyclass (FromRow)
       deriving (FromJSON, ToJSON) via Account
