@@ -2,11 +2,12 @@
 
 module Lib ( main ) where
 
-import Lib.App (AppEnv, Env (..), WithError)
+import Lib.App (AppEnv, Env (..))
 import Lib.Config (Config (..), loadConfig)
 import Lib.Core.Email (Email (..))
-import Lib.Db (initialisePool, WithDb)
-import Lib.Service (getUserName)
+import Lib.Core.Account (Account (..))
+import Lib.Db (initialisePool)
+import Lib.Service ( AccountService(..) ) -- (getAccountByEmail)
 import Lib.Effects.Log (mainLogAction, runAppLogIO_)
 
 
@@ -18,8 +19,8 @@ mkAppEnv Config{..} = do
     let envLogAction = mainLogAction cLogSeverity
     pure Env{..}
 
-mkApp :: (WithDb env m, WithError m, WithLog env m) => Email -> m Text
-mkApp = getUserName 
+mkApp :: (AccountService m) => Email -> m Account
+mkApp = getAccountByEmail 
 
 main :: IO ()
-main = loadConfig >>= mkAppEnv >>= flip runAppLogIO_ (mkApp $ Email "dghosh@acm.org") >>= print
+main = loadConfig >>= mkAppEnv >>= flip runAppLogIO_ (mkApp $ Email "test@test.com") >>= print

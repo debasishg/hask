@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: eb9a0f86afd8f4bc6a7a4fd732c51b30243300be1ebc1753c1658cd62a750977
+-- hash: 648fb1fe76a17df5929092789739086ef0cb2741de166f60a6ad7c40701cdf62
 
 name:           h3layer
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
       Lib.Effects.Log
   other-modules:
       Lib.Config
+      Lib.Core.Account
       Lib.Core.Admin
       Lib.Core.Email
       Lib.Core.Id
@@ -45,11 +46,13 @@ library
       Lib.Db.Functions
       Lib.Db.Schema
       Lib.Repository
+      Lib.Repository.Account
+      Lib.Repository.AccountRepo
       Lib.Repository.User
       Lib.Repository.UserRepo
       Lib.Service
-      Lib.Service.User
-      Lib.Service.UserService
+      Lib.Service.Account
+      Lib.Service.AccountService
       Paths_h3layer
   hs-source-dirs:
       src
@@ -72,6 +75,7 @@ library
     , resource-pool
     , say
     , text
+    , time
     , tomland
   default-language: Haskell2010
 

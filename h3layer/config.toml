@@ -1,2 +1,2 @@
-dbCredentials = "host=localhost port=5432 user=root dbname=three-layer"
+dbCredentials = "host=localhost port=5432 user=postgres dbname=h3"
 log.severity  = "Debug"

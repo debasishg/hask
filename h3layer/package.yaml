@@ -74,6 +74,7 @@ library:
     - bcrypt
     - tomland
     - say
+    - time
 
   ghc-options: 
     - -Wall 

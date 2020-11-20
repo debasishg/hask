@@ -4,4 +4,4 @@ module Lib.Service
        ( module Service
        ) where
 
-import Lib.Service.User as Service
+import Lib.Service.AccountService as Service

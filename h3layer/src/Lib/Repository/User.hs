@@ -12,7 +12,7 @@ import Lib.Db.Functions (WithDb, asSingleRow, queryNamed)
 
 getUserByEmail :: (WithDb env m, WithError m) => Email -> m User
 getUserByEmail email = asSingleRow $ queryNamed [sql|
-    SELECT id, email, name, pwd_hash
+    SELECT id, name, email, pwd_hash
     FROM users
     WHERE email = LOWER(?email)
 |] [ "email" =? email ]

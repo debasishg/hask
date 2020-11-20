@@ -14,3 +14,15 @@ CREATE TABLE IF NOT EXISTS users
 
 ALTER TABLE ONLY users
   ADD CONSTRAINT pk_users PRIMARY KEY (id);
+
+CREATE TABLE IF NOT EXISTS accounts
+( no         TEXT                     NOT NULL
+, name       TEXT                     NOT NULL
+, open_date  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+, close_date TIMESTAMP WITH TIME ZONE 
+, user_id    TEXT                     NOT NULL
+, PRIMARY KEY(no)
+, CONSTRAINT fk_user
+    FOREIGN KEY(user_id) 
+	    REFERENCES users(id)
+)
