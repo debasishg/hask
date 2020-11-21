@@ -28,9 +28,9 @@ module Lib.App.Error
        , notFoundOnNothingM
        ) where
 
-import PgNamed (PgNamedError)
 import Control.Monad.Except (MonadError)
 import GHC.Stack (SrcLoc (SrcLoc, srcLocModule, srcLocStartLine))
+import PgNamed (PgNamedError)
 
 import qualified Control.Monad.Except as E (throwError)
 

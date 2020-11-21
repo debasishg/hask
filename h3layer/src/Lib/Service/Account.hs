@@ -2,17 +2,15 @@ module Lib.Service.Account
        ( accountByEmail, transactionsByEmail ) where
 
 import Lib.App (WithError)
-import Lib.Core.Email (Email (..))
-import Lib.Core.User (User (..))
-import Lib.Core.Id ( Id(unId) ) 
 import Lib.Core.Account (Account (..))
+import Lib.Core.Email (Email (..))
+import Lib.Core.Id (Id (unId))
 import Lib.Core.Transaction (Transaction (..))
+import Lib.Core.User (User (..))
 import Lib.Db.Functions (WithDb)
-import Lib.Repository.UserRepo ( UserRepo(..) ) 
-import Lib.Repository.AccountRepo
-    ( AccountRepo(getAccountByUserId) ) 
-import Lib.Repository.TransactionRepo
-    ( TransactionRepo(getTransactionsByAccountNo) )
+import Lib.Repository.AccountRepo (AccountRepo (getAccountByUserId))
+import Lib.Repository.TransactionRepo (TransactionRepo (getTransactionsByAccountNo))
+import Lib.Repository.UserRepo (UserRepo (..))
 
 accountByEmail :: (WithDb env m, WithError m, WithLog env m, AccountRepo m, UserRepo m) => Email -> m Account
 accountByEmail email = do

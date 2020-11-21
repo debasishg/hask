@@ -10,22 +10,22 @@ module Lib.App.Env
        , DbPool
        )  where
 
+import Colog (HasLog (..), Message)
 import Data.Pool (Pool)
 import Database.PostgreSQL.Simple (Connection)
-import Colog (HasLog (..), Message)
 
 type DbPool = Pool Connection
 
 -- | The environment of the application
 data Env (m :: Type -> Type) = Env
-    { envDbPool        :: !DbPool
-    , envLogAction     :: !(LogAction m Message)
+    { envDbPool    :: !DbPool
+    , envLogAction :: !(LogAction m Message)
     }
 
 -- class HasLog env msg m where
 --     getLogAction :: env -> LogAction m msg
 --     setLogAction :: LogAction m msg -> env -> env
--- 
+--
 -- instance HasLog (LogAction m msg) msg m where
 --     getLogAction = id
 --     setLogAction = const

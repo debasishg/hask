@@ -5,8 +5,8 @@ module Lib.Core.Transaction
        ( Transaction (..)
        ) where
 
-import Data.Time ( UTCTime )
-import Lib.Core.Id (Id)
+import           Data.Time (UTCTime)
+import           Lib.Core.Id (Id)
 import qualified Money as Y
 
 type MoneyUSD = (Y.Dense "USD")
@@ -14,19 +14,19 @@ type MoneyUSD = (Y.Dense "USD")
 instance FromField MoneyUSD where
   fromField _ mdata =
     return money
-    where 
+    where
       money = case mdata of
         Just t -> case Y.denseFromDecimal Y.defaultDecimalConf (decodeUtf8 t) of
-          Just x -> x
+          Just x  -> x
           Nothing -> error "Invalid money"
         _      -> error "Invalid money"
 
 -- | Data type representing row in the @transactions@ table.
 data Transaction = Transaction
-    { txnId        :: !(Id Transaction)
-    , txnAmount    :: !MoneyUSD
-    , txnDate      :: !UTCTime 
-    , accountNo    :: !Text
+    { txnId     :: !(Id Transaction)
+    , txnAmount :: !MoneyUSD
+    , txnDate   :: !UTCTime
+    , accountNo :: !Text
     } deriving stock (Generic, Show, Eq)
       deriving anyclass (FromRow)
       deriving (FromJSON, ToJSON) via Transaction
