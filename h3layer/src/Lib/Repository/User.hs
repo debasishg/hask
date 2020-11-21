@@ -3,15 +3,15 @@
 -- | SQL queries to work with the @users@ table.
 
 module Lib.Repository.User
-       ( getUserByEmail ) where
+       ( userByEmail ) where
 
 import Lib.App (WithError)
 import Lib.Core.Email (Email (..))
 import Lib.Core.User (User (..))
 import Lib.Db.Functions (WithDb, asSingleRow, queryNamed)
 
-getUserByEmail :: (WithDb env m, WithError m) => Email -> m User
-getUserByEmail email = asSingleRow $ queryNamed [sql|
+userByEmail :: (WithDb env m, WithError m) => Email -> m User
+userByEmail email = asSingleRow $ queryNamed [sql|
     SELECT id, name, email, pwd_hash
     FROM users
     WHERE email = LOWER(?email)

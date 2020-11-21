@@ -13,9 +13,7 @@ import Lib.Effects.Log (mainLogAction, runAppLogIO)
 
 mkAppEnv :: Config -> IO AppEnv
 mkAppEnv Config{..} = do
-    -- IO configuration
     envDbPool   <- initialisePool cDbCredentials
-    -- pure configuration
     let envLogAction = mainLogAction cLogSeverity
     pure Env{..}
 
