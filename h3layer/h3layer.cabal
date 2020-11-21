@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 648fb1fe76a17df5929092789739086ef0cb2741de166f60a6ad7c40701cdf62
+-- hash: 9e025b7c4e11ae1f2cf97cfbd739396b04d0fd034a363184437dfafdbae730d4
 
 name:           h3layer
 version:        0.1.0.0
@@ -41,6 +41,7 @@ library
       Lib.Core.Email
       Lib.Core.Id
       Lib.Core.Password
+      Lib.Core.Transaction
       Lib.Core.User
       Lib.Db
       Lib.Db.Functions
@@ -48,6 +49,8 @@ library
       Lib.Repository
       Lib.Repository.Account
       Lib.Repository.AccountRepo
+      Lib.Repository.Transaction
+      Lib.Repository.TransactionRepo
       Lib.Repository.User
       Lib.Repository.UserRepo
       Lib.Service
@@ -73,6 +76,7 @@ library
     , proto-lens-runtime
     , relude
     , resource-pool
+    , safe-money
     , say
     , text
     , time

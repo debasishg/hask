@@ -25,4 +25,15 @@ CREATE TABLE IF NOT EXISTS accounts
 , CONSTRAINT fk_user
     FOREIGN KEY(user_id) 
 	    REFERENCES users(id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS transactions
+( id         TEXT                     NOT NULL
+, amount     NUMERIC                  NOT NULL
+, txn_date   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+, account_no TEXT                     NOT NULL
+, PRIMARY KEY(id)
+, CONSTRAINT fk_account
+    FOREIGN KEY(account_no)
+      REFERENCES accounts(no)
+);

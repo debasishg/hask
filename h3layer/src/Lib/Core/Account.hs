@@ -9,7 +9,7 @@ import Lib.Core.Id (Id)
 import Lib.Core.User ( User )
 
 
--- | Data type representing row in the @users@ table.
+-- | Data type representing row in the @accounts@ table.
 data Account = Account
     { accountNo    :: !Text
     , accountName  :: !Text
