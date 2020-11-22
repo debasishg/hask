@@ -3,6 +3,8 @@
 
 module Lib.Core.Transaction
        ( Transaction (..)
+       , MoneyUSD
+       , zeroDollars
        ) where
 
 import           Data.Time (UTCTime)
@@ -10,6 +12,9 @@ import           Lib.Core.Id (Id)
 import qualified Money as Y
 
 type MoneyUSD = (Y.Dense "USD")
+
+zeroDollars :: Y.Dense "USD"
+zeroDollars = 0 :: Y.Dense "USD"
 
 instance FromField MoneyUSD where
   fromField _ mdata =
