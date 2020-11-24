@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9e025b7c4e11ae1f2cf97cfbd739396b04d0fd034a363184437dfafdbae730d4
+-- hash: 489d15602eb22a19854db5066574fe487f37b58a70b6f99558fd1c0d3b3bcc2f
 
 name:           h3layer
 version:        0.1.0.0
@@ -37,7 +37,6 @@ library
   other-modules:
       Lib.Config
       Lib.Core.Account
-      Lib.Core.Admin
       Lib.Core.Email
       Lib.Core.Id
       Lib.Core.Password

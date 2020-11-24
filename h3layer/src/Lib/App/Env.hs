@@ -17,6 +17,10 @@ import Database.PostgreSQL.Simple (Connection)
 type DbPool = Pool Connection
 
 -- | The environment of the application
+-- This gives a name to the most common aspects of the application and centralizes the 
+-- configuration aspects that need to be wired with the application. This also gives us 
+-- the ability to write Haddock documentation for the environment. 
+
 data Env (m :: Type -> Type) = Env
     { envDbPool    :: !DbPool
     , envLogAction :: !(LogAction m Message)
