@@ -1,7 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
--- module Main (main) where
-
 import Data.Text (pack)
 import Data.Time ( UTCTime, defaultTimeLocale, parseTimeOrError )
 import qualified Control.Monad.State.Strict as State
