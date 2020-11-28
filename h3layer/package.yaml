@@ -76,6 +76,10 @@ library:
     - say
     - time
     - safe-money
+    - stm
+    - lifted-async
+    - hspec
+    - hspec-expectations
 
   ghc-options: 
     - -Wall 
@@ -102,9 +106,9 @@ tests:
   h3layer-test:
     main:                Spec.hs
     source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
-    - h3layer
+      - h3layer
+      - hspec 
+      - hspec-expectations
+      - base-noprelude 
+      - relude 
