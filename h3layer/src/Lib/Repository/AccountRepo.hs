@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Lib.Repository.AccountRepo where
@@ -22,10 +22,10 @@ instance AccountRepo App where
 
 -- | Mocks for testing that uses StateT
 -- instance Monad m => AccountRepo (State.StateT [Account] m) where
---   getAccountByUserId uid = 
---     StateT $ \s -> 
+--   getAccountByUserId uid =
+--     StateT $ \s ->
 --       return (Unsafe.head (filter(\a -> unId (userId a) == uid) s), s)
--- 
---   isAccountClosed ano = 
---     StateT $ \s -> 
+--
+--   isAccountClosed ano =
+--     StateT $ \s ->
 --       return (closeDate (Unsafe.head (filter (\a -> accountNo a == ano) s)), s)

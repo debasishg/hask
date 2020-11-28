@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ca9569902691cba09b330c893d3396aec04ddc226748a7f9c497d5ab280bf5be
+-- hash: 65437be75eacbbc1f207a1d695e9612c80d4827a43b9b1f5b3ec7ddfe812376a
 
 name:           h3layer
 version:        0.1.0.0
@@ -55,7 +55,6 @@ library
       Lib.Service.Account
       Lib.Service.AccountService
   other-modules:
-      NewLib
       Paths_h3layer
   hs-source-dirs:
       src
@@ -110,6 +109,7 @@ test-suite h3layer-test
       base-noprelude
     , h3layer
     , hspec
+    , hspec-core
     , hspec-expectations
     , mtl
     , relude

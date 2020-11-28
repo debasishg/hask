@@ -1,22 +1,22 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-import Data.Text (pack)
-import Data.Time ( UTCTime, defaultTimeLocale, parseTimeOrError )
 import qualified Control.Monad.State.Strict as State
 import qualified Relude.Unsafe as Unsafe
-import Test.Hspec (describe, hspec, it)
-import Test.Hspec.Expectations ( shouldBe ) 
-import Lib.Core.Account (Account (..))
-import Lib.Repository.AccountRepo ( AccountRepo(..) ) 
-import Lib.Core.Id ( Id(Id, unId) )
+import           Data.Text (pack)
+import           Data.Time (UTCTime, defaultTimeLocale, parseTimeOrError)
+import           Lib.Core.Account (Account (..))
+import           Lib.Core.Id (Id (Id, unId))
+import           Lib.Repository.AccountRepo (AccountRepo (..))
+import           Test.Hspec (describe, hspec, it)
+import           Test.Hspec.Expectations (shouldBe)
 
 instance Monad m => AccountRepo (State.StateT [Account] m) where
-  getAccountByUserId uid = 
-    StateT $ \s -> 
+  getAccountByUserId uid =
+    StateT $ \s ->
       return (Unsafe.head (filter(\a -> unId (userId a) == uid) s), s)
 
-  isAccountClosed ano = 
-    StateT $ \s -> 
+  isAccountClosed ano =
+    StateT $ \s ->
       return (closeDate (Unsafe.head (filter (\a -> accountNo a == ano) s)), s)
 
 timeFormat :: String
@@ -29,18 +29,18 @@ a1 = Account { accountNo = "a-001"
              , accountName = "a-name-1"
              , openDate = understandTime "10:30:20"
              , closeDate = Nothing
-             , userId = Id (pack "u-001") 
+             , userId = Id (pack "u-001")
              }
 a2 :: Account
 a2 = Account { accountNo = "a-002"
              , accountName = "a-name-2"
              , openDate = understandTime "10:30:20"
              , closeDate = Nothing
-             , userId = Id (pack "u-002") 
-             } 
+             , userId = Id (pack "u-002")
+             }
 
 accounts :: [Account]
-accounts = [a1, a2] 
+accounts = [a1, a2]
 
 main :: IO ()
 main = hspec $ do

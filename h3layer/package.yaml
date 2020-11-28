@@ -129,6 +129,7 @@ tests:
       - h3layer
       - base-noprelude
       - hspec 
+      - hspec-core
       - hspec-expectations
       - relude 
       - text
