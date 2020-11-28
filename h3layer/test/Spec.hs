@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Main (main) where
+-- module Main (main) where
 
 import Data.Text (pack)
 import Data.Time ( UTCTime, defaultTimeLocale, parseTimeOrError )

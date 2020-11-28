@@ -1,10 +1,10 @@
 name:                h3layer
 version:             0.1.0.0
-github:              "githubuser/h3layer"
+github:              "https://github.com/debasishg/hask"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2020 Author name here"
+author:              "Debasish Ghosh"
+maintainer:          "dghosh@acm.org"
+copyright:           "2020 Debasish Ghosh"
 
 extra-source-files:
 - README.md
@@ -55,6 +55,26 @@ library:
     - Lib.App.Error
     - Lib.App.Monad
     - Lib.Effects.Log
+    - Lib.Config
+    - Lib.Core.Account
+    - Lib.Core.Email
+    - Lib.Core.Id
+    - Lib.Core.Password
+    - Lib.Core.Transaction
+    - Lib.Core.User
+    - Lib.Db
+    - Lib.Db.Functions
+    - Lib.Db.Schema
+    - Lib.Repository
+    - Lib.Repository.Account
+    - Lib.Repository.AccountRepo
+    - Lib.Repository.Transaction
+    - Lib.Repository.TransactionRepo
+    - Lib.Repository.User
+    - Lib.Repository.UserRepo
+    - Lib.Service
+    - Lib.Service.Account
+    - Lib.Service.AccountService
 
   dependencies:
     - base-noprelude 
@@ -101,6 +121,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - h3layer
+    - base-noprelude
 
 tests:
   h3layer-test:
@@ -108,7 +129,10 @@ tests:
     source-dirs:         test
     dependencies:
       - h3layer
+      - base-noprelude
       - hspec 
       - hspec-expectations
-      - base-noprelude 
       - relude 
+      - text
+      - mtl
+      - time

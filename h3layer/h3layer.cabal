@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e9a689325924650be0801c55117d3dafabeb7cd136b5147dd81f42baa3b2be9c
+-- hash: f345e3e2a0fbfb52c11a4a2effa2c55f6c13f8d906a85aa0adaec5f7ea036b87
 
 name:           h3layer
 version:        0.1.0.0
@@ -34,7 +34,6 @@ library
       Lib.App.Error
       Lib.App.Monad
       Lib.Effects.Log
-  other-modules:
       Lib.Config
       Lib.Core.Account
       Lib.Core.Email
@@ -55,6 +54,7 @@ library
       Lib.Service
       Lib.Service.Account
       Lib.Service.AccountService
+  other-modules:
       NewLib
       Paths_h3layer
   hs-source-dirs:
@@ -96,7 +96,8 @@ executable h3layer-exe
   default-extensions: BangPatterns ConstraintKinds DataKinds DeriveGeneric DerivingStrategies DerivingVia FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses OverloadedStrings OverloadedLabels RecordWildCards ScopedTypeVariables TypeApplications TypeFamilies TypeOperators
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      h3layer
+      base-noprelude
+    , h3layer
   default-language: Haskell2010
 
 test-suite h3layer-test
@@ -112,5 +113,8 @@ test-suite h3layer-test
     , h3layer
     , hspec
     , hspec-expectations
+    , mtl
     , relude
+    , text
+    , time
   default-language: Haskell2010
