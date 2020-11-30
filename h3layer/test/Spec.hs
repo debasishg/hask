@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
 import qualified Control.Monad.State.Strict as State
 import qualified Relude.Unsafe as Unsafe
 import           Data.Text (pack)
@@ -9,15 +7,6 @@ import           Lib.Core.Id (Id (Id, unId))
 import           Lib.Repository.AccountRepo (AccountRepo (..))
 import           Test.Hspec (describe, hspec, it)
 import           Test.Hspec.Expectations (shouldBe)
-
-instance Monad m => AccountRepo (State.StateT [Account] m) where
-  getAccountByUserId uid =
-    StateT $ \s ->
-      return (Unsafe.head (filter(\a -> unId (userId a) == uid) s), s)
-
-  isAccountClosed ano =
-    StateT $ \s ->
-      return (closeDate (Unsafe.head (filter (\a -> accountNo a == ano) s)), s)
 
 timeFormat :: String
 timeFormat = "%H:%M:%S"
