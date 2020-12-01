@@ -1,10 +1,10 @@
 import qualified Control.Monad.State.Strict as State
-import qualified Relude.Unsafe as Unsafe
 import           Data.Text (pack)
 import           Data.Time (UTCTime, defaultTimeLocale, parseTimeOrError)
 import           Lib.Core.Account (Account (..))
 import           Lib.Core.Id (Id (Id, unId))
 import           Lib.Repository.AccountRepo (AccountRepo (..))
+import qualified Relude.Unsafe as Unsafe
 import           Test.Hspec (describe, hspec, it)
 import           Test.Hspec.Expectations (shouldBe)
 

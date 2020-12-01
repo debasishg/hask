@@ -98,6 +98,7 @@ library:
     - safe-money
     - stm
     - lifted-async
+    - validation-selective
 
   ghc-options: 
     - -Wall 

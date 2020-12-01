@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 65437be75eacbbc1f207a1d695e9612c80d4827a43b9b1f5b3ec7ddfe812376a
+-- hash: 060fbb8935f3f40ed0190c130ae34347b662d185a7d14bb16896bb4fc94e23aa
 
 name:           h3layer
 version:        0.1.0.0
@@ -55,6 +55,7 @@ library
       Lib.Service.Account
       Lib.Service.AccountService
   other-modules:
+      Lib.Core.DomainError
       Paths_h3layer
   hs-source-dirs:
       src
@@ -82,6 +83,7 @@ library
     , text
     , time
     , tomland
+    , validation-selective
   default-language: Haskell2010
 
 executable h3layer-exe

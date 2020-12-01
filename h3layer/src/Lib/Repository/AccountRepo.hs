@@ -3,13 +3,13 @@
 
 module Lib.Repository.AccountRepo where
 
-import Data.Time (UTCTime)
 import qualified Control.Monad.State.Strict as State
+import           Data.Time (UTCTime)
 import qualified Relude.Unsafe as Unsafe
 
 import Lib.App (App)
-import Lib.Core.Id (Id (unId))
 import Lib.Core.Account (Account (..))
+import Lib.Core.Id (Id (unId))
 import Lib.Repository.Account (accountByUserId, accountClosed)
 
 class (Monad m) => AccountRepo m where
