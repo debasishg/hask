@@ -40,19 +40,28 @@ validateAccountOpenCloseDate acc = case closeDate acc of
   Nothing -> Success acc
   Just dt -> acc <$ failureIf (openDate acc > dt) (InvalidAccountOpenCloseDateCombination (T.pack $ "Account close date " ++ show dt ++ " cannot precede open date " ++ show (openDate acc)))
 
-_mkAccount :: Text -> Text -> UTCTime -> UTCTime -> Maybe UTCTime -> Text -> Validation (NonEmpty DomainError) Account
-_mkAccount no name currDate odate cdate uid = Account
-    <$> validateAccountNumber no
-    <*> validateAccountName name
-    <*> validateAccountOpenDate currDate odate
-    <*> pure cdate
-    <*> pure (Id uid)
-
 validate :: Account -> Validation (NonEmpty DomainError) Account
 validate = validateAccountOpenCloseDate
 
-mkAccount :: Text -> Text -> UTCTime -> UTCTime -> Maybe UTCTime -> Text -> Validation (NonEmpty DomainError) Account
-mkAccount no name currdate odate cdate uid =
-    case _mkAccount no name currdate odate cdate uid of
+-- | Smart constructor for building an 'Account'.
+--
+-- The smart constructor builds a valid domain object or reports failure if any of the
+-- validations fail. The validation proceeds in two stages:
+--
+-- a. local field validation that ensures individual fields have valid values
+-- b. global validation that validates across fields. e.g. here validation of 'closeDate'
+--    depends on 'openDate' and hence is done as part of the global validation in the
+--    'validate' function
+
+mkAccount :: UTCTime -> Text -> Text -> UTCTime -> Maybe UTCTime -> Text -> Validation (NonEmpty DomainError) Account
+mkAccount utcCurrent no name odate cdate uid =
+    case _mkAccount of
         Success acc -> validate acc
         Failure e   -> failure $ Data.List.NonEmpty.head e
+        where
+            _mkAccount = Account
+                <$> validateAccountNumber no
+                <*> validateAccountName name
+                <*> validateAccountOpenDate utcCurrent odate
+                <*> pure cdate
+                <*> pure (Id uid)
