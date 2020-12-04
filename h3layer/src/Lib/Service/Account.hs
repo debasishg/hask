@@ -2,7 +2,7 @@ module Lib.Service.Account
        ( accountByEmail, transactionsByEmail ) where
 
 import Lib.App (WithError)
-import Lib.Core.Account (Account (..))
+import Lib.Core.Account (Account, getAccountNo)
 import Lib.Core.Email (Email (..))
 import Lib.Core.Id (Id (unId))
 import Lib.Core.Transaction (Transaction (..))
@@ -20,5 +20,5 @@ accountByEmail email = do
 
 transactionsByEmail :: (WithDb env m, WithError m, WithLog env m, AccountRepo m, UserRepo m, TransactionRepo m) => Email -> m [Transaction]
 transactionsByEmail email = do
-  Account {..} <- accountByEmail email
-  getTransactionsByAccountNo accountNo
+  a <- accountByEmail email
+  getTransactionsByAccountNo (getAccountNo a)

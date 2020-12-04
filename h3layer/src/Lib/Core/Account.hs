@@ -1,8 +1,11 @@
 {-# LANGUAGE DeriveAnyClass #-}
 
 module Lib.Core.Account
-       ( Account (..)
+       ( Account -- (..)
        , mkAccount
+       , getCloseDate
+       , getUserId
+       , getAccountNo
        ) where
 
 import qualified Data.Text as T
@@ -65,3 +68,12 @@ mkAccount utcCurrent no name odate cdate uid =
                 <*> validateAccountOpenDate utcCurrent odate
                 <*> pure cdate
                 <*> pure (Id uid)
+
+getCloseDate :: Account -> Maybe UTCTime
+getCloseDate = closeDate
+
+getUserId :: Account -> Id User
+getUserId = userId
+
+getAccountNo :: Account -> Text
+getAccountNo = accountNo

@@ -4,11 +4,11 @@
 module Lib.Repository.AccountRepo where
 
 import qualified Control.Monad.State.Strict as State
-import           Data.Time (UTCTime)
 import qualified Relude.Unsafe as Unsafe
+import           Data.Time (UTCTime)
 
 import Lib.App (App)
-import Lib.Core.Account (Account (..))
+import Lib.Core.Account (Account, getAccountNo, getCloseDate, getUserId)
 import Lib.Core.Id (Id (unId))
 import Lib.Repository.Account (accountByUserId, accountClosed)
 
@@ -24,8 +24,8 @@ instance AccountRepo App where
 instance Monad m => AccountRepo (State.StateT [Account] m) where
   getAccountByUserId uid =
     StateT $ \s ->
-      return (Unsafe.head (filter(\a -> unId (userId a) == uid) s), s)
+      return (Unsafe.head (filter(\a -> unId (getUserId a) == uid) s), s)
 
   isAccountClosed ano =
     StateT $ \s ->
-      return (closeDate (Unsafe.head (filter (\a -> accountNo a == ano) s)), s)
+      return (getCloseDate (Unsafe.head (filter (\a -> getAccountNo a == ano) s)), s)

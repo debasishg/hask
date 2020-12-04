@@ -5,10 +5,9 @@
 module Lib.Repository.Account
        ( accountByUserId, accountClosed ) where
 
--- import Data.Functor
 import Data.Time (UTCTime)
 import Lib.App (WithError)
-import Lib.Core.Account (Account (..))
+import Lib.Core.Account (Account, getCloseDate)
 import Lib.Db.Functions (WithDb, asSingleRow, queryNamed)
 
 accountByUserId :: (WithDb env m, WithError m) => Text -> m Account
@@ -24,4 +23,4 @@ accountClosed no = asSingleRow (queryNamed [sql|
     SELECT no, name, open_date, close_date, user_id
     FROM accounts
     WHERE no = ?no
-|] [ "no" =? no ] ) >>= return . closeDate
+|] [ "no" =? no ] ) >>= return . getCloseDate
