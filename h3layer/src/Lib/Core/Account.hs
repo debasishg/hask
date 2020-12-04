@@ -9,14 +9,12 @@ module Lib.Core.Account
        ) where
 
 import qualified Data.Text as T
-
-import Data.List.NonEmpty (head)
-
-import Data.Time (UTCTime)
-import Lib.Core.DomainError (DomainError (InvalidAccountName, InvalidAccountNo, InvalidAccountOpenCloseDateCombination, InvalidAccountOpenDate))
-import Lib.Core.Id (Id (Id))
-import Lib.Core.User (User)
-import Validation (Validation (..), failure, failureIf)
+import           Data.Time (UTCTime)
+import           Lib.Core.DomainError (DomainError (InvalidAccountName, InvalidAccountNo, InvalidAccountOpenCloseDateCombination, InvalidAccountOpenDate))
+import           Lib.Core.Id (Id (Id))
+import           Lib.Core.User (User)
+import           Validation (Validation (Success), eitherToValidation, failureIf,
+                             validationToEither)
 
 -- | Data type representing row in the @accounts@ table.
 data Account = Account
@@ -58,9 +56,7 @@ validate = validateAccountOpenCloseDate
 
 mkAccount :: UTCTime -> Text -> Text -> UTCTime -> Maybe UTCTime -> Text -> Validation (NonEmpty DomainError) Account
 mkAccount utcCurrent no name odate cdate uid =
-    case _mkAccount of
-        Success acc -> validate acc
-        Failure e   -> failure $ Data.List.NonEmpty.head e
+    eitherToValidation (validationToEither _mkAccount >>= (validationToEither . validate))
         where
             _mkAccount = Account
                 <$> validateAccountNumber no

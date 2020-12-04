@@ -1,29 +1,49 @@
 import qualified Control.Monad.State.Strict as State
-import qualified Relude.Unsafe as Unsafe
 import           Data.Text (pack)
-import           Data.Time (UTCTime, defaultTimeLocale, getCurrentTime, parseTimeOrError)
+import           Data.Time (UTCTime, addUTCTime, defaultTimeLocale, getCurrentTime, nominalDay,
+                            parseTimeOrError)
 import           Lib.Core.Account (Account, mkAccount)
+import           Lib.Core.DomainError (DomainError)
 import           Lib.Repository.AccountRepo (AccountRepo (getAccountByUserId))
+import qualified Relude.Unsafe as Unsafe
 import           Test.Hspec (describe, hspec, it)
 import           Test.Hspec.Expectations (shouldBe)
-import           Validation (successes)
+import           Validation (failures, successes)
 
 timeFormat :: String
 timeFormat = "%H:%M:%S"
 understandTime :: String -> UTCTime
 understandTime = parseTimeOrError True defaultTimeLocale timeFormat
 
+anHourFromNow :: IO UTCTime
+anHourFromNow = do addUTCTime 3600 <$> getCurrentTime
+
+anHourBackFromNow :: IO UTCTime
+anHourBackFromNow = do addUTCTime (-3600) <$> getCurrentTime
+
 accounts :: IO [Account]
 accounts = do
   c <- getCurrentTime
-  let a1 = mkAccount c "a-01234567" "a-name-1" (understandTime "10:30:20") Nothing (pack "u-001")
-  let a2 = mkAccount c "a-12345678" "a-name-2" (understandTime "10:30:20") Nothing (pack "u-002")
+  let a1 = mkAccount c "a-01234567" "a-name-1" (addUTCTime (-3600) c) Nothing (pack "u-001")
+  let a2 = mkAccount c "a-12345678" "a-name-2" (addUTCTime (-3600) c) Nothing (pack "u-002")
   return $ successes [a1, a2]
+
+invalidAccounts :: IO [NonEmpty DomainError]
+invalidAccounts = do
+  c <- getCurrentTime
+  let a1 = mkAccount c "a-012345" "a-name-1" (addUTCTime nominalDay c) Nothing (pack "u-001")
+  let a2 = mkAccount c "a-123456" "a-name-2" (addUTCTime nominalDay c) Nothing (pack "u-002")
+  return $ failures [a1, a2]
 
 main :: IO ()
 main = hspec $ do
   describe "getAccountByUserId" $ do
-    it "works" $ do
+    it "returns the account corresponding to the user id passed" $ do
       accs <- accounts
       let res = State.evalState (getAccountByUserId "u-001") accs
       res `shouldBe` Unsafe.head accs
+
+  describe "account validation" $ do
+    it "fails for all accounts" $ do
+      accs <- invalidAccounts
+      (length accs `shouldBe` 2) >> print accs

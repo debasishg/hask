@@ -62,6 +62,7 @@ library:
     - Lib.Core.Password
     - Lib.Core.Transaction
     - Lib.Core.User
+    - Lib.Core.DomainError
     - Lib.Db
     - Lib.Db.Functions
     - Lib.Db.Schema
@@ -99,8 +100,6 @@ library:
     - stm
     - lifted-async
     - validation-selective
-    - hspec
-    - hspec-expectations
 
   ghc-options: 
     - -Wall 

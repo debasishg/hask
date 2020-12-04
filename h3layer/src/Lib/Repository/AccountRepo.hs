@@ -4,8 +4,8 @@
 module Lib.Repository.AccountRepo where
 
 import qualified Control.Monad.State.Strict as State
-import qualified Relude.Unsafe as Unsafe
 import           Data.Time (UTCTime)
+import qualified Relude.Unsafe as Unsafe
 
 import Lib.App (App)
 import Lib.Core.Account (Account, getAccountNo, getCloseDate, getUserId)
