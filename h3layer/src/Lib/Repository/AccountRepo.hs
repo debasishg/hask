@@ -40,8 +40,8 @@ instance Monad m => AccountRepo (State.StateT [Account] m) where
   insertAccount acc =
     StateT $ \s ->
       return (1::Int64, maybe s (\a -> s ++ [a]) (addIfNotDuplicateAccount s))
-          where 
-              addIfNotDuplicateAccount :: [Account] -> Maybe Account 
+          where
+              addIfNotDuplicateAccount :: [Account] -> Maybe Account
               addIfNotDuplicateAccount accs = case find (\a -> getAccountNo a == getAccountNo acc) accs of
                   Just _  -> Nothing
                   Nothing -> Just acc
