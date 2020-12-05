@@ -17,10 +17,13 @@ accountByUserId userId = asSingleRow $ queryNamed [sql|
     WHERE user_id = ?userId
 |] [ "userId" =? userId ]
 
--- accountClosed :: (WithDb env m, WithError m, FromRow (Maybe UTCTime)) => Text -> m (Maybe UTCTime)
 accountClosed :: (WithDb env m, WithError m) => Text -> m (Maybe UTCTime)
-accountClosed no = asSingleRow (queryNamed [sql|
-    SELECT no, name, open_date, close_date, user_id
-    FROM accounts
-    WHERE no = ?no
-|] [ "no" =? no ] ) >>= return . getCloseDate
+accountClosed no = asSingleRow
+    (queryNamed
+       [sql|
+      SELECT no, name, open_date, close_date, user_id
+      FROM accounts
+      WHERE no = ?no
+  |]
+       ["no" =? no])
+    <&> getCloseDate
