@@ -10,15 +10,9 @@ module Lib.Repository.Account
 
 import Data.Time (UTCTime)
 import Lib.App (WithError)
-import Lib.Core.Account
-    ( Account,
-      getCloseDate,
-      getUserId,
-      getAccountNo,
-      getAccountName,
-      getOpenDate ) 
-import Lib.Db.Functions
-    ( asSingleRow, executeNamed, queryNamed, WithDb ) 
+import Lib.Core.Account (Account, getAccountName, getAccountNo, getCloseDate, getOpenDate,
+                         getUserId)
+import Lib.Db.Functions (WithDb, asSingleRow, executeNamed, queryNamed)
 
 -- | concrete implementations based on postgresql that uses
 -- mtl style constraints for effects
@@ -42,10 +36,10 @@ accountClosed no = asSingleRow
     <&> getCloseDate
 
 addAccount :: (WithDb env m, WithError m) => Account -> m Int64
-addAccount account = 
+addAccount account =
     executeNamed
         [sql|
-            INSERT INTO accounts 
+            INSERT INTO accounts
             (no, name, open_date, close_date, user_id)]
             VALUES
             (?ano, ?anm, ?odt, ?cdt, ?uid)

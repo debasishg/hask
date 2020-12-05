@@ -4,8 +4,7 @@ import           Data.Time (UTCTime, addUTCTime, defaultTimeLocale, getCurrentTi
                             parseTimeOrError)
 import           Lib.Core.Account (Account, mkAccount)
 import           Lib.Core.DomainError (DomainError)
-import Lib.Repository.AccountRepo
-    ( AccountRepo(insertAccount, getAccountByUserId) ) 
+import           Lib.Repository.AccountRepo (AccountRepo (getAccountByUserId, insertAccount))
 import qualified Relude.Unsafe as Unsafe
 import           Test.Hspec (describe, hspec, it)
 import           Test.Hspec.Expectations (shouldBe)

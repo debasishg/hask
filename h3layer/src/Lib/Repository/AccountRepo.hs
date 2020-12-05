@@ -10,8 +10,7 @@ import qualified Relude.Unsafe as Unsafe
 import Lib.App (App)
 import Lib.Core.Account (Account, getAccountNo, getCloseDate, getUserId)
 import Lib.Core.Id (Id (unId))
-import Lib.Repository.Account
-    ( accountByUserId, accountClosed, addAccount ) 
+import Lib.Repository.Account (accountByUserId, accountClosed, addAccount)
 
 -- | typeclass for 'AccountRepo'. The only assumption is that it's defined
 -- in terms of a monad 'm'
@@ -39,5 +38,5 @@ instance Monad m => AccountRepo (State.StateT [Account] m) where
       return (getCloseDate (Unsafe.head (filter (\a -> getAccountNo a == ano) s)), s)
 
   insertAccount acc =
-    StateT $ \s -> 
+    StateT $ \s ->
       return (1::Int64, s ++ [acc])
