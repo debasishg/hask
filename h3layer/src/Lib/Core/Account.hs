@@ -6,6 +6,8 @@ module Lib.Core.Account
        , getCloseDate
        , getUserId
        , getAccountNo
+       , getAccountName
+       , getOpenDate
        ) where
 
 import qualified Data.Text as T
@@ -73,3 +75,9 @@ getUserId = userId
 
 getAccountNo :: Account -> Text
 getAccountNo = accountNo
+
+getAccountName :: Account -> Text
+getAccountName = accountName
+
+getOpenDate :: Account -> UTCTime
+getOpenDate = openDate
