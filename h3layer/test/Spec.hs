@@ -2,7 +2,7 @@ import qualified Control.Monad.State.Strict as State
 import           Data.Text (pack)
 import           Data.Time (UTCTime, addUTCTime, defaultTimeLocale, getCurrentTime, nominalDay,
                             parseTimeOrError)
-import           Lib.Core.Account (Account, mkAccount)
+import           Lib.Core.Account (Account, getAccountNo, mkAccount)
 import           Lib.Core.DomainError (DomainError)
 import           Lib.Repository.AccountRepo (AccountRepo (getAccountByUserId, insertAccount))
 import qualified Relude.Unsafe as Unsafe
@@ -28,10 +28,10 @@ accounts = do
   let a2 = mkAccount c "a-12345678" "a-name-2" (addUTCTime (-3600) c) Nothing (pack "u-002")
   return $ successes [a1, a2]
 
-oneAccount :: IO [Account]
-oneAccount = do
+oneAccount :: Text -> IO [Account]
+oneAccount ano = do
   c <- getCurrentTime
-  let a1 = mkAccount c "a-76543210" "a-name-3" (addUTCTime (-3600) c) Nothing (pack "u-003")
+  let a1 = mkAccount c ano "a-name-3" (addUTCTime (-3600) c) Nothing (pack "u-003")
   return $ successes [a1]
 
 invalidAccounts :: IO [NonEmpty DomainError]
@@ -57,7 +57,13 @@ main = hspec $ do
   describe "account add" $ do
     it "should add the account" $ do
       accs <- accounts
-      acc <- oneAccount
+      acc <- oneAccount "a-76543210"
       let res = State.execState (insertAccount (Unsafe.head acc)) accs
       (length res `shouldBe` 3) >> print res
+
+    it "should fail adding an account with duplicate account no" $ do
+      accs <- accounts
+      acc <- oneAccount (getAccountNo $ Unsafe.head accs)
+      let res = State.execState (insertAccount (Unsafe.head acc)) accs
+      (length res `shouldBe` 2) >> print res
 
