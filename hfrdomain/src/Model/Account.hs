@@ -27,7 +27,12 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Text as T
 import qualified Money as Y
 import Data.Aeson (Value(..), decode)
-import Validation (Validation (..), failure, failureIf)
+import Validation
+    ( Validation(..),
+      eitherToValidation,
+      failure,
+      failureIf,
+      validationToEither ) 
 import Data.List.NonEmpty ( NonEmpty, head )
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time ( UTCTime, diffUTCTime, NominalDiffTime )
@@ -55,9 +60,8 @@ import Errors
                 RateNotApplicableForCheckingAccount, AccountAlreadyClosed) )
 
 makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
-makeAccount currentTime req = case _makeAccount currentTime req of
-  Success a -> validate a 
-  Failure e -> failure $ Data.List.NonEmpty.head e
+makeAccount currentTime req = 
+    eitherToValidation (validationToEither (_makeAccount currentTime req) >>= (validationToEither . validate))
 
 _makeAccount :: UTCTime -> Value -> Validation (NonEmpty ErrorInfo) Account
 _makeAccount utcCurrent req = 
