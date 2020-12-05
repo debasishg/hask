@@ -12,15 +12,20 @@ import Lib.Core.Account (Account, getAccountNo, getCloseDate, getUserId)
 import Lib.Core.Id (Id (unId))
 import Lib.Repository.Account (accountByUserId, accountClosed)
 
+-- | typeclass for 'AccountRepo'. The only assumption is that it's defined
+-- in terms of a monad 'm'
 class (Monad m) => AccountRepo m where
   getAccountByUserId :: Text -> m Account
   isAccountClosed :: Text -> m (Maybe UTCTime)
 
+-- | an instance of the typeclass for the Application monad
+-- that gets the implementations from a concrete postgresql based
+-- implementation
 instance AccountRepo App where
   getAccountByUserId = accountByUserId
   isAccountClosed = accountClosed
 
--- | Mocks for testing that uses StateT
+-- | Mock instance of the typeclass for testing that uses StateT
 instance Monad m => AccountRepo (State.StateT [Account] m) where
   getAccountByUserId uid =
     StateT $ \s ->
