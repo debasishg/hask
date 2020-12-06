@@ -1,5 +1,8 @@
 module Lib.Service.Account
-       ( accountByEmail, transactionsByEmail ) where
+       ( accountByEmail
+       , transactionsByEmail
+       , addAccount
+       ) where
 
 import Lib.App (WithError)
 import Lib.Core.Account (Account, getAccountNo)
@@ -8,7 +11,7 @@ import Lib.Core.Id (Id (unId))
 import Lib.Core.Transaction (Transaction (..))
 import Lib.Core.User (User (..))
 import Lib.Db.Functions (WithDb)
-import Lib.Repository.AccountRepo (AccountRepo (getAccountByUserId))
+import Lib.Repository.AccountRepo (AccountRepo (getAccountByUserId, insertAccount))
 import Lib.Repository.TransactionRepo (TransactionRepo (getTransactionsByAccountNo))
 import Lib.Repository.UserRepo (UserRepo (..))
 
@@ -22,3 +25,6 @@ transactionsByEmail :: (WithDb env m, WithError m, WithLog env m, AccountRepo m,
 transactionsByEmail email = do
   a <- accountByEmail email
   getTransactionsByAccountNo (getAccountNo a)
+
+addAccount :: (AccountRepo m) => Account -> m Int64
+addAccount = insertAccount

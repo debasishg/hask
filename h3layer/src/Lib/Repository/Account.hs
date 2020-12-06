@@ -40,7 +40,7 @@ addAccount account =
     executeNamed
         [sql|
             INSERT INTO accounts
-            (no, name, open_date, close_date, user_id)]
+            (no, name, open_date, close_date, user_id)
             VALUES
             (?ano, ?anm, ?odt, ?cdt, ?uid)
         |]
