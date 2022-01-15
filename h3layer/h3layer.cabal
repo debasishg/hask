@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 612f1888f0df617b95f2e99cb820051cc2f1394843883bbd2775c846c1444c20
+-- hash: 808424a2067b2f26d42786fb0b4536526964e97658589c054972ef97da09095f
 
 name:           h3layer
 version:        0.1.0.0
@@ -67,6 +67,8 @@ library
     , bcrypt
     , bytestring
     , co-log
+    , hspec
+    , hspec-expectations
     , lens
     , lifted-async
     , mtl

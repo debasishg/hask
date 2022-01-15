@@ -100,6 +100,8 @@ library:
     - stm
     - lifted-async
     - validation-selective
+    - hspec 
+    - hspec-expectations
 
   ghc-options: 
     - -Wall 

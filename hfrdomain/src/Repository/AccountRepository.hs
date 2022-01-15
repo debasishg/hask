@@ -12,7 +12,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Repository.AccountRepository where 
+module Repository.AccountRepository where
 
 import qualified Data.Text as T
 import qualified Data.Map  as M
@@ -20,14 +20,16 @@ import qualified Polysemy.State as S
 import Data.Pool ( Pool )
 import Data.Time ( UTCTime )
 import Control.Lens ( (^.) )
-import Polysemy ( Member, Sem, Embed, Members, interpret, makeSem )          
-import Polysemy.Input ( Input )          
+import Polysemy ( Member, Sem, Embed, Members, interpret, makeSem )
+import Polysemy.Input ( Input )
 import Database.Persist (get, insert_, insertMany_, repsert, repsertMany, selectList, (==.))
 import Database.Persist.Sqlite (SqlBackend)
 
-import Model.Account ( accountNo, accountOpenDate, Account )
 import Model.Schema
-    ( EntityField(AccountOpenDate),
+    ( accountNo,
+      accountOpenDate,
+      Account,
+      EntityField(AccountOpenDate),
       Key(AccountKey),
       unEntity,
       AccountKey )
@@ -49,17 +51,17 @@ makeSem ''AccountRepository
 -- | Interpreter for AccountRepository
 runAccountRepository :: forall r b. Members [Embed IO, Input (Pool SqlBackend)] r => Sem (AccountRepository ': r) b -> Sem r b
 runAccountRepository = interpret $ \case
-  QueryAccount ano -> runDB (get (AccountKey ano)) 
+  QueryAccount ano -> runDB (get (AccountKey ano))
   Store acc        -> runDB (insert_ acc)
   StoreMany accs   -> runDB (insertMany_ accs)
   AllAccounts      -> runDB doAllAccounts
-    where 
+    where
       doAllAccounts = do
         es <- selectList [] []
         return $ unEntity <$> es
   QueryByOpenDate date -> runDB doQueryByOpenDate
     where
-      doQueryByOpenDate = do 
+      doQueryByOpenDate = do
         es <- selectList [AccountOpenDate ==. date] []
         return $ unEntity <$> es
   Upsert acc -> runDB doUpsert
